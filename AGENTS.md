@@ -11,7 +11,7 @@
 
 ## Unity 프로젝트 규칙
 
-- 기준 Unity 버전은 `ProjectSettings/ProjectVersion.txt`의 `6000.3.13f1`입니다.
+- 기준 Unity 버전은 `ProjectSettings/ProjectVersion.txt`의 `6000.3.8f1`입니다.
 - 게임 파일은 `Assets/`, 패키지 의존성은 `Packages/`, 공용 프로젝트 설정은 `ProjectSettings/`에서 관리합니다.
 - Unity 에셋을 추가·이동·삭제할 때 대응하는 `.meta` 파일도 반드시 함께 처리합니다. GUID가 불필요하게 바뀌지 않도록 기존 `.meta` 파일을 보존합니다.
 - 씬, 프리팹, ScriptableObject 같은 직렬화 파일을 직접 편집할 때는 참조와 YAML 구조가 손상되지 않았는지 확인합니다.

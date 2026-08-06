@@ -4,7 +4,7 @@ AI 에이전트와 함께 개발하는 Unity 게임 프로젝트입니다. 현�
 
 ## 개발 환경
 
-- Unity `6000.3.13f1`
+- Unity `6000.3.8f1`
 - Universal Render Pipeline (URP) `17.3.0`
 - Input System `1.19.0`
 

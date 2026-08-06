@@ -1,0 +1,32 @@
+# Keep text files stable across Windows, macOS, and Linux agents.
+* text=auto
+
+# Unity serialized text files. Unity emits significant-looking trailing spaces
+# for empty YAML values, so exclude those generated files from whitespace checks.
+*.anim text eol=lf -whitespace
+*.asset text eol=lf -whitespace
+*.controller text eol=lf -whitespace
+*.meta text eol=lf -whitespace
+*.overrideController text eol=lf -whitespace
+*.prefab text eol=lf -whitespace
+*.scenetemplate text eol=lf -whitespace
+*.unity text eol=lf -whitespace
+
+# Source, configuration, and documentation
+*.asmdef text eol=lf
+*.asmref text eol=lf
+*.cginc text eol=lf
+*.compute text eol=lf
+*.cs text eol=lf
+*.hlsl text eol=lf
+*.inputactions text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.shader text eol=lf
+*.shadergraph text eol=lf
+*.shadersubgraph text eol=lf
+*.txt text eol=lf
+*.uxml text eol=lf
+*.uss text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf

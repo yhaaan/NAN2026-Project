@@ -56,6 +56,22 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(game.CurrentTurn, Is.EqualTo(StoneColor.White));
         }
 
+        [Test]
+        public void CanPlace_ReturnsTrueOnlyForOpenIntersectionDuringPlacement()
+        {
+            var game = new GomokuGame();
+
+            Assert.That(game.CanPlace(7, 7, unit), Is.True);
+            Assert.That(game.CanPlace(-1, 0, unit), Is.False);
+            Assert.That(game.CanPlace(7, 7, null), Is.False);
+            game.TryPlace(7, 7, unit);
+            Assert.That(game.CanPlace(7, 7, unit), Is.False);
+            Assert.That(game.CanPlace(8, 7, unit), Is.True);
+            game.TryPlace(8, 7, unit);
+            Assert.That(game.Phase, Is.EqualTo(GamePhase.Combat));
+            Assert.That(game.CanPlace(9, 7, unit), Is.False);
+        }
+
         [TestCase(1, 0)]
         [TestCase(0, 1)]
         [TestCase(1, 1)]

@@ -3,7 +3,6 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace NAN2026.Gomoku.Tests
 {
@@ -20,12 +19,15 @@ namespace NAN2026.Gomoku.Tests
             GomokuHud hud = FindInScene<GomokuHud>(scene);
             GomokuGameController controller = FindInScene<GomokuGameController>(scene);
             GomokuBoardView boardView = FindInScene<GomokuBoardView>(scene);
+            PlacementCursorView cursorView = FindInScene<PlacementCursorView>(scene);
             ShopSlotView[] shopSlots = FindAllInScene<ShopSlotView>(scene);
 
             Assert.That(canvas, Is.Not.Null);
             Assert.That(hud, Is.Not.Null);
             Assert.That(controller, Is.Not.Null);
             Assert.That(boardView, Is.Not.Null);
+            Assert.That(cursorView, Is.Not.Null);
+            Assert.That(cursorView.GetComponent<CanvasRenderer>(), Is.Not.Null);
             Assert.That(boardView.GetComponent<CanvasRenderer>(), Is.Not.Null);
             Assert.That(shopSlots, Has.Length.EqualTo(ShopState.SlotCount));
 
@@ -48,11 +50,16 @@ namespace NAN2026.Gomoku.Tests
 
             var serializedHud = new SerializedObject(hud);
             Assert.That(serializedHud.FindProperty("shopSlots").arraySize, Is.EqualTo(ShopState.SlotCount));
+            Assert.That(serializedHud.FindProperty("placementCursorView").objectReferenceValue, Is.SameAs(cursorView));
 
             var serializedBoard = new SerializedObject(boardView);
             Assert.That(serializedBoard.FindProperty("attackDamagePopup").objectReferenceValue, Is.Not.Null);
             Assert.That(serializedBoard.FindProperty("hitDamagePopup").objectReferenceValue, Is.Not.Null);
             Assert.That(serializedBoard.FindProperty("healPopup").objectReferenceValue, Is.Not.Null);
+            var serializedCursor = new SerializedObject(cursorView);
+            Assert.That(serializedCursor.FindProperty("boardView").objectReferenceValue, Is.SameAs(boardView));
+            Assert.That(serializedCursor.FindProperty("shopRect").objectReferenceValue, Is.Not.Null);
+            Assert.That(serializedCursor.FindProperty("resultPanel").objectReferenceValue, Is.Not.Null);
 
             EditorBuildSettingsScene[] buildScenes = EditorBuildSettings.scenes;
             Assert.That(buildScenes, Has.Length.GreaterThanOrEqualTo(1));

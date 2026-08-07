@@ -5,9 +5,11 @@ using UnityEngine.UI;
 
 namespace NAN2026.Gomoku
 {
+    [RequireComponent(typeof(RectTransform))]
     public sealed class GomokuHud : MonoBehaviour
     {
         [SerializeField] private GomokuBoardView boardView;
+        [SerializeField] private PlacementCursorView placementCursorView;
         [SerializeField] private Text scoreText;
         [SerializeField] private Text statusText;
         [SerializeField] private Text combatText;
@@ -24,6 +26,7 @@ namespace NAN2026.Gomoku
 
         private Action<int> onShopSelection;
         private Action<int, int> onBoardClick;
+        private StoneColor playerSide = StoneColor.White;
 
         public void Initialize(
             Action<int, int> boardClick,
@@ -48,6 +51,7 @@ namespace NAN2026.Gomoku
         public void BindGame(GomokuGame game, StoneColor playerSide)
         {
             boardView.Bind(game, playerSide, onBoardClick);
+            this.playerSide = playerSide;
         }
 
         public void SetHeader(string score, string status)
@@ -75,14 +79,25 @@ namespace NAN2026.Gomoku
                 }
             }
 
-            selectedText.text = selectedIndex >= 0
-                ? $"선택: {offers[selectedIndex].DisplayName}"
+            UnitDefinitionSO selectedDefinition = interactable
+                && selectedIndex >= 0
+                && selectedIndex < offers.Count
+                ? offers[selectedIndex]
+                : null;
+            placementCursorView.SetSelection(selectedDefinition, playerSide);
+
+            boardView.SetPlacementPreview(selectedDefinition);
+
+            selectedText.text = selectedDefinition != null
+                ? $"선택: {selectedDefinition.DisplayName}"
                 : (interactable ? "유닛을 선택하세요" : "COM 배치 대기 중");
         }
 
         public void HideShop()
         {
             shopPanel.SetActive(false);
+            placementCursorView.SetSelection(null, playerSide);
+            boardView.SetPlacementPreview(null);
         }
 
         public void SetCombatStatus(float remainingSeconds, string action)

@@ -79,12 +79,17 @@ namespace NAN2026.Gomoku
             return board[x, y];
         }
 
+        public bool CanPlace(int x, int y, UnitDefinitionSO definition)
+        {
+            return Phase == GamePhase.Placement
+                && definition != null
+                && IsInsideBoard(x, y)
+                && board[x, y] == null;
+        }
+
         public bool TryPlace(int x, int y, UnitDefinitionSO definition)
         {
-            if (Phase != GamePhase.Placement
-                || definition == null
-                || !IsInsideBoard(x, y)
-                || board[x, y] != null)
+            if (!CanPlace(x, y, definition))
             {
                 return false;
             }

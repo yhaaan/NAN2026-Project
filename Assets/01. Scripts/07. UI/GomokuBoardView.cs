@@ -12,6 +12,8 @@ namespace NAN2026.Gomoku
     {
         private static readonly Color BoardColor = new Color(0.78f, 0.57f, 0.30f);
         private static readonly Color GridColor = new Color(0.16f, 0.11f, 0.07f);
+        private static readonly Color PlayerRangeColor = new Color(0.12f, 0.62f, 1f, 0.28f);
+        private static readonly Color EnemyRangeColor = new Color(1f, 0.2f, 0.16f, 0.28f);
 
         [SerializeField] private DamageNumber attackDamagePopup;
         [SerializeField] private DamageNumber hitDamagePopup;
@@ -20,19 +22,65 @@ namespace NAN2026.Gomoku
         private GomokuGame game;
         private StoneColor playerSide = StoneColor.White;
         private Action<int, int> onIntersectionClicked;
+        private Canvas rootCanvas;
+        private UnitDefinitionSO placementPreviewDefinition;
+        private BoardPointerState pointerState = BoardPointerState.None;
+
+        public BoardPointerState PointerState => pointerState;
+        public float PlacementPreviewDiameter
+        {
+            get
+            {
+                GetGridMetrics(out _, out float spacing);
+                return spacing * 0.82f;
+            }
+        }
 
         public void Bind(GomokuGame targetGame, StoneColor perspectiveSide, Action<int, int> clickHandler)
         {
             game = targetGame;
             playerSide = perspectiveSide;
             onIntersectionClicked = clickHandler;
+            rootCanvas = GetComponentInParent<Canvas>();
+            placementPreviewDefinition = null;
+            pointerState = BoardPointerState.None;
             raycastTarget = true;
             SetVerticesDirty();
         }
 
         public void Refresh()
         {
+            if (pointerState.Mode == BoardPointerMode.UnitHover)
+            {
+                BoardUnit hoveredUnit = pointerState.HoveredUnit;
+                if (hoveredUnit == null || game.GetUnit(hoveredUnit.X, hoveredUnit.Y) != hoveredUnit)
+                {
+                    pointerState = BoardPointerState.None;
+                }
+            }
+            else if (pointerState.Mode == BoardPointerMode.PlacementPreview
+                && (placementPreviewDefinition == null
+                    || game.CurrentTurn != playerSide
+                    || !game.CanPlace(
+                        pointerState.X,
+                        pointerState.Y,
+                        placementPreviewDefinition)))
+            {
+                pointerState = BoardPointerState.None;
+            }
+
             SetVerticesDirty();
+        }
+
+        public void SetPlacementPreview(UnitDefinitionSO definition)
+        {
+            if (placementPreviewDefinition == definition)
+            {
+                return;
+            }
+
+            placementPreviewDefinition = definition;
+            ClearPointerState();
         }
 
         public void ShowDamage(int x, int y, int damage, bool causedByPlayer)
@@ -70,20 +118,20 @@ namespace NAN2026.Gomoku
                 return;
             }
 
-            GetGridMetrics(out Rect gridRect, out float spacing);
-            int x = Mathf.RoundToInt((localPoint.x - gridRect.xMin) / spacing);
-            int y = Mathf.RoundToInt((localPoint.y - gridRect.yMin) / spacing);
-
-            if (x < 0 || x >= GomokuGame.BoardSize || y < 0 || y >= GomokuGame.BoardSize)
-            {
-                return;
-            }
-
-            Vector2 intersection = new Vector2(gridRect.xMin + x * spacing, gridRect.yMin + y * spacing);
-            if (Vector2.Distance(localPoint, intersection) <= spacing * 0.46f)
+            if (TryGetIntersection(localPoint, out int x, out int y))
             {
                 onIntersectionClicked?.Invoke(x, y);
             }
+        }
+
+        public void UpdatePointerPosition(Vector2 screenPosition)
+        {
+            UpdatePointerState(screenPosition);
+        }
+
+        public void ClearPointerPosition()
+        {
+            ClearPointerState();
         }
 
         protected override void OnPopulateMesh(VertexHelper vertexHelper)
@@ -115,9 +163,39 @@ namespace NAN2026.Gomoku
                 return;
             }
 
+            if (pointerState.Mode == BoardPointerMode.PlacementPreview)
+            {
+                DrawRange(
+                    vertexHelper,
+                    gridRect,
+                    spacing,
+                    pointerState.X,
+                    pointerState.Y,
+                    placementPreviewDefinition.Range,
+                    PlayerRangeColor);
+            }
+            else if (pointerState.Mode == BoardPointerMode.UnitHover)
+            {
+                BoardUnit hoveredUnit = pointerState.HoveredUnit;
+                Color rangeColor = hoveredUnit.Side == playerSide ? PlayerRangeColor : EnemyRangeColor;
+                DrawRange(
+                    vertexHelper,
+                    gridRect,
+                    spacing,
+                    hoveredUnit.X,
+                    hoveredUnit.Y,
+                    hoveredUnit.Definition.Range,
+                    rangeColor);
+            }
+
             foreach (BoardUnit unit in game.Units)
             {
                 DrawUnit(vertexHelper, gridRect, spacing, unit);
+            }
+
+            if (pointerState.Mode == BoardPointerMode.PlacementPreview)
+            {
+                DrawUnitPreview(vertexHelper, gridRect, spacing);
             }
         }
 
@@ -125,12 +203,13 @@ namespace NAN2026.Gomoku
         {
             Vector2 center = Intersection(gridRect, spacing, unit.X, unit.Y);
             float radius = spacing * 0.41f;
-            Color outer = unit.Side == StoneColor.Black ? new Color(0.03f, 0.03f, 0.04f) : new Color(0.1f, 0.1f, 0.1f);
-            Color inner = unit.Side == StoneColor.Black ? new Color(0.08f, 0.08f, 0.1f) : new Color(0.95f, 0.95f, 0.92f);
-
-            AddCircle(vertexHelper, center, radius, outer, 24);
-            AddCircle(vertexHelper, center, radius * 0.88f, inner, 24);
-            AddCircle(vertexHelper, center, radius * 0.30f, unit.Definition.RoleColor, 16);
+            UnitStoneMeshUtility.AddStone(
+                vertexHelper,
+                center,
+                radius,
+                unit.Side,
+                unit.Definition.RoleColor,
+                false);
 
             float healthRatio = (float)unit.CurrentHealth / unit.Definition.MaxHealth;
             Rect healthBack = new Rect(center.x - radius, center.y - radius - 5f, radius * 2f, 4f);
@@ -146,6 +225,111 @@ namespace NAN2026.Gomoku
             {
                 AddCircle(vertexHelper, center, Mathf.Max(2.5f, radius * 0.09f), Color.red, 10);
             }
+        }
+
+        private void DrawUnitPreview(VertexHelper vertexHelper, Rect gridRect, float spacing)
+        {
+            Vector2 center = Intersection(gridRect, spacing, pointerState.X, pointerState.Y);
+            float radius = spacing * 0.41f;
+            UnitStoneMeshUtility.AddStone(
+                vertexHelper,
+                center,
+                radius,
+                playerSide,
+                placementPreviewDefinition.RoleColor,
+                true);
+        }
+
+        private void DrawRange(
+            VertexHelper vertexHelper,
+            Rect gridRect,
+            float spacing,
+            int originX,
+            int originY,
+            int range,
+            Color color)
+        {
+            float markerSize = spacing * 0.78f;
+
+            for (int x = Mathf.Max(0, originX - range); x <= Mathf.Min(GomokuGame.BoardSize - 1, originX + range); x++)
+            {
+                for (int y = Mathf.Max(0, originY - range); y <= Mathf.Min(GomokuGame.BoardSize - 1, originY + range); y++)
+                {
+                    Vector2 center = Intersection(gridRect, spacing, x, y);
+                    AddQuad(
+                        vertexHelper,
+                        new Rect(center.x - markerSize * 0.5f, center.y - markerSize * 0.5f, markerSize, markerSize),
+                        color);
+                }
+            }
+        }
+
+        private void UpdatePointerState(Vector2 screenPosition)
+        {
+            Camera eventCamera = rootCanvas != null && rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? rootCanvas.worldCamera
+                : null;
+            if (game == null
+                || !RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    rectTransform,
+                    screenPosition,
+                    eventCamera,
+                    out Vector2 localPoint)
+                || !TryGetIntersection(localPoint, out int x, out int y))
+            {
+                ClearPointerState();
+                return;
+            }
+
+            if (placementPreviewDefinition != null)
+            {
+                bool canPreview = game.CurrentTurn == playerSide
+                    && game.CanPlace(x, y, placementPreviewDefinition);
+                if (canPreview)
+                {
+                    SetPointerState(BoardPointerState.ForPlacement(x, y));
+                    return;
+                }
+
+                BoardUnit unit = game.GetUnit(x, y);
+                SetPointerState(unit != null && unit.Side != playerSide
+                    ? BoardPointerState.ForUnit(unit)
+                    : BoardPointerState.None);
+                return;
+            }
+
+            SetPointerState(BoardPointerState.ForUnit(game.GetUnit(x, y)));
+        }
+
+        private void SetPointerState(BoardPointerState nextState)
+        {
+            if (pointerState.Equals(nextState))
+            {
+                return;
+            }
+
+            pointerState = nextState;
+            SetVerticesDirty();
+        }
+
+        private void ClearPointerState()
+        {
+            SetPointerState(BoardPointerState.None);
+        }
+
+        private bool TryGetIntersection(Vector2 localPoint, out int x, out int y)
+        {
+            GetGridMetrics(out Rect gridRect, out float spacing);
+            x = Mathf.RoundToInt((localPoint.x - gridRect.xMin) / spacing);
+            y = Mathf.RoundToInt((localPoint.y - gridRect.yMin) / spacing);
+
+            if (x < 0 || x >= GomokuGame.BoardSize || y < 0 || y >= GomokuGame.BoardSize)
+            {
+                return false;
+            }
+
+            Vector2 intersection = Intersection(gridRect, spacing, x, y);
+            return Vector2.Distance(localPoint, intersection) <= spacing * 0.46f;
         }
 
         private void GetGridMetrics(out Rect gridRect, out float spacing)

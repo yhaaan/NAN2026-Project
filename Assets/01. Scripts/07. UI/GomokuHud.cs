@@ -1,0 +1,134 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace NAN2026.Gomoku
+{
+    public sealed class GomokuHud : MonoBehaviour
+    {
+        [SerializeField] private GomokuBoardView boardView;
+        [SerializeField] private Text scoreText;
+        [SerializeField] private Text statusText;
+        [SerializeField] private Text combatText;
+        [SerializeField] private GameObject shopPanel;
+        [SerializeField] private Text goldText;
+        [SerializeField] private Text selectedText;
+        [SerializeField] private Button rerollButton;
+        [SerializeField] private ShopSlotView[] shopSlots;
+        [SerializeField] private GameObject resultPanel;
+        [SerializeField] private Text resultTitleText;
+        [SerializeField] private Text resultScoreText;
+        [SerializeField] private Button continueButton;
+        [SerializeField] private Text continueButtonText;
+
+        private Action<int> onShopSelection;
+        private Action<int, int> onBoardClick;
+
+        public void Initialize(
+            Action<int, int> boardClick,
+            Action<int> shopSelection,
+            Action reroll,
+            Action continueAction)
+        {
+            onBoardClick = boardClick;
+            onShopSelection = shopSelection;
+
+            for (int index = 0; index < shopSlots.Length; index++)
+            {
+                shopSlots[index].Initialize(index, HandleShopSelection);
+            }
+
+            rerollButton.onClick.RemoveAllListeners();
+            rerollButton.onClick.AddListener(() => reroll());
+            continueButton.onClick.RemoveAllListeners();
+            continueButton.onClick.AddListener(() => continueAction());
+        }
+
+        public void BindGame(GomokuGame game, StoneColor playerSide)
+        {
+            boardView.Bind(game, playerSide, onBoardClick);
+        }
+
+        public void SetHeader(string score, string status)
+        {
+            scoreText.text = score;
+            statusText.text = status;
+        }
+
+        public void ShowShop(
+            IReadOnlyList<UnitDefinitionSO> offers,
+            int gold,
+            int selectedIndex,
+            bool interactable)
+        {
+            shopPanel.SetActive(true);
+            goldText.text = $"Gold: {gold}";
+            rerollButton.interactable = interactable && gold >= ShopState.RerollCost;
+
+            for (int index = 0; index < shopSlots.Length; index++)
+            {
+                shopSlots[index].gameObject.SetActive(index < offers.Count);
+                if (index < offers.Count)
+                {
+                    shopSlots[index].Bind(offers[index], index == selectedIndex, interactable);
+                }
+            }
+
+            selectedText.text = selectedIndex >= 0
+                ? $"선택: {offers[selectedIndex].DisplayName}"
+                : (interactable ? "유닛을 선택하세요" : "COM 배치 대기 중");
+        }
+
+        public void HideShop()
+        {
+            shopPanel.SetActive(false);
+        }
+
+        public void SetCombatStatus(float remainingSeconds, string action)
+        {
+            combatText.gameObject.SetActive(true);
+            combatText.text = string.IsNullOrEmpty(action)
+                ? $"Combat {remainingSeconds:0.0}s"
+                : $"Combat {remainingSeconds:0.0}s  |  {action}";
+        }
+
+        public void ClearCombatStatus()
+        {
+            combatText.gameObject.SetActive(false);
+        }
+
+        public void RefreshBoard()
+        {
+            boardView.Refresh();
+        }
+
+        public void ShowDamage(int x, int y, int damage, bool causedByPlayer)
+        {
+            boardView.ShowDamage(x, y, damage, causedByPlayer);
+        }
+
+        public void ShowHeal(int x, int y, int healing)
+        {
+            boardView.ShowHeal(x, y, healing);
+        }
+
+        public void ShowResult(string title, string score, string buttonLabel)
+        {
+            resultPanel.SetActive(true);
+            resultTitleText.text = title;
+            resultScoreText.text = score;
+            continueButtonText.text = buttonLabel;
+        }
+
+        public void HideResult()
+        {
+            resultPanel.SetActive(false);
+        }
+
+        private void HandleShopSelection(int index)
+        {
+            onShopSelection?.Invoke(index);
+        }
+    }
+}

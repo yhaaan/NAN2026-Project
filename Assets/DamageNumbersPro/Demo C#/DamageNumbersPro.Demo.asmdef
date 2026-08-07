@@ -1,0 +1,10 @@
+{
+    "name": "DamageNumbersPro.Demo",
+    "references": [
+        "DamageNumbersPro"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "DNP_INCLUDE_DEMOS"
+    ]
+}

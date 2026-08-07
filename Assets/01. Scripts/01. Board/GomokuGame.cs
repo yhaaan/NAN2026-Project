@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace NAN2026.Gomoku
 {
@@ -7,6 +8,13 @@ namespace NAN2026.Gomoku
         None,
         Black,
         White
+    }
+
+    public enum GamePhase
+    {
+        Placement,
+        Combat,
+        GameOver
     }
 
     public sealed class GomokuGame
@@ -22,62 +30,147 @@ namespace NAN2026.Gomoku
             (1, -1)
         };
 
-        private readonly StoneColor[,] board = new StoneColor[BoardSize, BoardSize];
+        private readonly BoardUnit[,] board = new BoardUnit[BoardSize, BoardSize];
+        private readonly List<BoardUnit> units = new List<BoardUnit>();
+        private int nextPlacementOrder;
+        private int placementsInCycle;
 
+        public StoneColor StartingSide { get; private set; } = StoneColor.Black;
         public StoneColor CurrentTurn { get; private set; } = StoneColor.Black;
         public StoneColor Winner { get; private set; } = StoneColor.None;
+        public GamePhase Phase { get; private set; } = GamePhase.Placement;
         public int LastMoveX { get; private set; } = -1;
         public int LastMoveY { get; private set; } = -1;
-        public bool IsGameOver => Winner != StoneColor.None;
+        public bool IsGameOver => Phase == GamePhase.GameOver;
+        public IReadOnlyList<BoardUnit> Units => units;
+
+        public GomokuGame()
+        {
+            StartNewGame(StoneColor.Black);
+        }
+
+        public void StartNewGame(StoneColor startingSide)
+        {
+            if (startingSide == StoneColor.None)
+            {
+                throw new ArgumentException("A game must start with Black or White.", nameof(startingSide));
+            }
+
+            Array.Clear(board, 0, board.Length);
+            units.Clear();
+            StartingSide = startingSide;
+            CurrentTurn = startingSide;
+            Winner = StoneColor.None;
+            Phase = GamePhase.Placement;
+            LastMoveX = -1;
+            LastMoveY = -1;
+            nextPlacementOrder = 0;
+            placementsInCycle = 0;
+        }
 
         public StoneColor GetStone(int x, int y)
+        {
+            return GetUnit(x, y)?.Side ?? StoneColor.None;
+        }
+
+        public BoardUnit GetUnit(int x, int y)
         {
             ValidateCoordinates(x, y);
             return board[x, y];
         }
 
-        public bool TryPlace(int x, int y)
+        public bool TryPlace(int x, int y, UnitDefinitionSO definition)
         {
-            if (IsGameOver || !IsInsideBoard(x, y) || board[x, y] != StoneColor.None)
+            if (Phase != GamePhase.Placement
+                || definition == null
+                || !IsInsideBoard(x, y)
+                || board[x, y] != null)
             {
                 return false;
             }
 
-            StoneColor placedColor = CurrentTurn;
-            board[x, y] = placedColor;
+            StoneColor placedSide = CurrentTurn;
+            var unit = new BoardUnit(definition, placedSide, x, y, nextPlacementOrder++);
+            board[x, y] = unit;
+            units.Add(unit);
             LastMoveX = x;
             LastMoveY = y;
 
-            if (HasFiveFrom(x, y, placedColor))
+            if (HasFiveFrom(x, y, placedSide))
             {
-                Winner = placedColor;
+                Winner = placedSide;
+                Phase = GamePhase.GameOver;
+                return true;
+            }
+
+            if (units.Count >= BoardSize * BoardSize)
+            {
+                Winner = StoneColor.None;
+                Phase = GamePhase.GameOver;
+                return true;
+            }
+
+            placementsInCycle++;
+            if (placementsInCycle >= 2)
+            {
+                Phase = GamePhase.Combat;
             }
             else
             {
-                CurrentTurn = placedColor == StoneColor.Black
-                    ? StoneColor.White
-                    : StoneColor.Black;
+                CurrentTurn = OpponentOf(placedSide);
             }
 
             return true;
         }
 
-        public void Restart()
+        public void CompleteCombat()
         {
-            Array.Clear(board, 0, board.Length);
-            CurrentTurn = StoneColor.Black;
-            Winner = StoneColor.None;
-            LastMoveX = -1;
-            LastMoveY = -1;
+            if (Phase != GamePhase.Combat)
+            {
+                return;
+            }
+
+            placementsInCycle = 0;
+            CurrentTurn = StartingSide;
+            Phase = GamePhase.Placement;
         }
 
-        private bool HasFiveFrom(int x, int y, StoneColor color)
+        public void RemoveUnit(BoardUnit unit)
         {
+            if (unit == null || !IsInsideBoard(unit.X, unit.Y) || board[unit.X, unit.Y] != unit)
+            {
+                return;
+            }
+
+            board[unit.X, unit.Y] = null;
+            units.Remove(unit);
+        }
+
+        public bool HasAnyUnits(StoneColor side)
+        {
+            foreach (BoardUnit unit in units)
+            {
+                if (unit.Side == side && unit.IsAlive)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool WouldWin(int x, int y, StoneColor side)
+        {
+            if (side == StoneColor.None || !IsInsideBoard(x, y) || board[x, y] != null)
+            {
+                return false;
+            }
+
             foreach ((int directionX, int directionY) in Directions)
             {
                 int connected = 1
-                    + CountDirection(x, y, directionX, directionY, color)
-                    + CountDirection(x, y, -directionX, -directionY, color);
+                    + CountDirection(x, y, directionX, directionY, side)
+                    + CountDirection(x, y, -directionX, -directionY, side);
 
                 if (connected >= StonesToWin)
                 {
@@ -88,13 +181,40 @@ namespace NAN2026.Gomoku
             return false;
         }
 
-        private int CountDirection(int startX, int startY, int stepX, int stepY, StoneColor color)
+        public void Restart()
+        {
+            StartNewGame(StoneColor.Black);
+        }
+
+        public static StoneColor OpponentOf(StoneColor side)
+        {
+            return side == StoneColor.Black ? StoneColor.White : StoneColor.Black;
+        }
+
+        private bool HasFiveFrom(int x, int y, StoneColor side)
+        {
+            foreach ((int directionX, int directionY) in Directions)
+            {
+                int connected = 1
+                    + CountDirection(x, y, directionX, directionY, side)
+                    + CountDirection(x, y, -directionX, -directionY, side);
+
+                if (connected >= StonesToWin)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private int CountDirection(int startX, int startY, int stepX, int stepY, StoneColor side)
         {
             int count = 0;
             int x = startX + stepX;
             int y = startY + stepY;
 
-            while (IsInsideBoard(x, y) && board[x, y] == color)
+            while (IsInsideBoard(x, y) && GetStone(x, y) == side)
             {
                 count++;
                 x += stepX;

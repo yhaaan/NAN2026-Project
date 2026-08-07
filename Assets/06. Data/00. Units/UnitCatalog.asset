@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb8117aa2f864fe28c337593e993f903, type: 3}
+  m_Name: UnitCatalog
+  m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitCatalogSO
+  units:
+  - {fileID: 11400000, guid: 9a1585a460d834144a37617266769d5b, type: 2}
+  - {fileID: 11400000, guid: 9f4c7bc020ca7f1438a4c3a1cb08ae26, type: 2}
+  - {fileID: 11400000, guid: 22d9fe6bb6d5d16479f49d36dd80dc57, type: 2}
+  - {fileID: 11400000, guid: d75b5f185b5b7064b97bf8fa5a990b16, type: 2}

@@ -1,0 +1,13 @@
+{
+    "name": "NAN2026.Gomoku.Tests",
+    "rootNamespace": "NAN2026.Gomoku.Tests",
+    "references": [
+        "NAN2026.Gomoku"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

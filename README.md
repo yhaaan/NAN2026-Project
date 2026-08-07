@@ -13,9 +13,12 @@ Unity Hub에서 저장소의 루트 폴더를 열어 실행합니다. 패키지�
 ## 저장소 구성
 
 - `Assets/`: 게임 코드, 씬, 프리팹 및 에셋
+- `Docs/`: 게임 기획 및 개발 문서
 - `Packages/`: Unity 패키지 의존성
 - `ProjectSettings/`: 프로젝트 공용 설정
 - `AGENTS.md`: AI 에이전트가 작업 전에 따라야 할 저장소 지침
+
+현재 게임 기획은 [`Docs/GAME_DESIGN.md`](./Docs/GAME_DESIGN.md)에서 관리합니다.
 
 `Library/`, `Temp/`, `Logs/`, `UserSettings/`와 IDE가 생성하는 프로젝트 파일은 커밋하지 않습니다.
 

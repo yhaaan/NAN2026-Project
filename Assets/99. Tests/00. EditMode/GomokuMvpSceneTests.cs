@@ -51,6 +51,15 @@ namespace NAN2026.Gomoku.Tests
             var serializedHud = new SerializedObject(hud);
             Assert.That(serializedHud.FindProperty("shopSlots").arraySize, Is.EqualTo(ShopState.SlotCount));
             Assert.That(serializedHud.FindProperty("placementCursorView").objectReferenceValue, Is.SameAs(cursorView));
+            UnitInfoPanelView infoPanelPrefab = serializedHud.FindProperty("unitInfoPanelPrefab").objectReferenceValue
+                as UnitInfoPanelView;
+            Assert.That(infoPanelPrefab, Is.Not.Null);
+            Assert.That(
+                AssetDatabase.GetAssetPath(infoPanelPrefab),
+                Is.EqualTo("Assets/02. Prefabs/02. UI/UnitInfoPanel.prefab"));
+            Assert.That(
+                infoPanelPrefab.GetComponentsInChildren<UnityEngine.UI.Slider>(true),
+                Has.Length.EqualTo(2));
 
             var serializedBoard = new SerializedObject(boardView);
             Assert.That(serializedBoard.FindProperty("attackDamagePopup").objectReferenceValue, Is.Not.Null);

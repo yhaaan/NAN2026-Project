@@ -10,6 +10,7 @@ namespace NAN2026.Gomoku
     {
         [SerializeField] private GomokuBoardView boardView;
         [SerializeField] private PlacementCursorView placementCursorView;
+        [SerializeField] private UnitInfoPanelView unitInfoPanelPrefab;
         [SerializeField] private Text scoreText;
         [SerializeField] private Text statusText;
         [SerializeField] private Text combatText;
@@ -27,6 +28,27 @@ namespace NAN2026.Gomoku
         private Action<int> onShopSelection;
         private Action<int, int> onBoardClick;
         private StoneColor playerSide = StoneColor.White;
+        private UnitInfoPanelView unitInfoPanel;
+        private CombatResolver combat;
+
+        private void Awake()
+        {
+            if (unitInfoPanelPrefab != null)
+            {
+                unitInfoPanel = Instantiate(unitInfoPanelPrefab, transform, false);
+                unitInfoPanel.name = unitInfoPanelPrefab.name;
+                unitInfoPanel.transform.SetSiblingIndex(Mathf.Max(0, transform.childCount - 2));
+            }
+        }
+
+        private void LateUpdate()
+        {
+            BoardUnit hoveredUnit = boardView != null
+                && boardView.PointerState.Mode == BoardPointerMode.UnitHover
+                ? boardView.PointerState.HoveredUnit
+                : null;
+            unitInfoPanel?.Refresh(hoveredUnit, combat, playerSide);
+        }
 
         public void Initialize(
             Action<int, int> boardClick,
@@ -52,6 +74,11 @@ namespace NAN2026.Gomoku
         {
             boardView.Bind(game, playerSide, onBoardClick);
             this.playerSide = playerSide;
+        }
+
+        public void SetCombatResolver(CombatResolver resolver)
+        {
+            combat = resolver;
         }
 
         public void SetHeader(string score, string status)

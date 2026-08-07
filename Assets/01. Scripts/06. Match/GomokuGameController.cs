@@ -47,6 +47,7 @@ namespace NAN2026.Gomoku
             combat.UnitDamaged += HandleUnitDamaged;
             combat.UnitHealed += HandleUnitHealed;
             hud.Initialize(HandleBoardClick, HandleShopSelection, HandleReroll, HandleContinue);
+            hud.SetCombatResolver(combat);
             StartMatch();
         }
 

@@ -118,5 +118,37 @@ namespace NAN2026.Gomoku.Tests
                 Object.DestroyImmediate(enemy);
             }
         }
+
+        [Test]
+        public void RemainingCooldown_TracksEachUnitInRealTime()
+        {
+            UnitDefinitionSO first = TestUnitFactory.Create("First", UnitRole.Melee, 100, 0, 1, 2f);
+            UnitDefinitionSO second = TestUnitFactory.Create("Second", UnitRole.Melee, 100, 0, 1, 3f);
+
+            try
+            {
+                var game = new GomokuGame();
+                game.TryPlace(7, 7, first);
+                game.TryPlace(8, 7, second);
+                BoardUnit firstUnit = game.GetUnit(7, 7);
+                BoardUnit secondUnit = game.GetUnit(8, 7);
+                var combat = new CombatResolver();
+
+                Assert.That(combat.TryGetRemainingCooldown(firstUnit, out _), Is.False);
+
+                combat.Begin(game);
+                combat.Tick(0.75f);
+
+                Assert.That(combat.TryGetRemainingCooldown(firstUnit, out float firstRemaining), Is.True);
+                Assert.That(combat.TryGetRemainingCooldown(secondUnit, out float secondRemaining), Is.True);
+                Assert.That(firstRemaining, Is.EqualTo(1.25f).Within(0.001f));
+                Assert.That(secondRemaining, Is.EqualTo(2.25f).Within(0.001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(first);
+                Object.DestroyImmediate(second);
+            }
+        }
     }
 }

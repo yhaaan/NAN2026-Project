@@ -525,6 +525,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.GomokuHud
   boardView: {fileID: 1828465222}
   placementCursorView: {fileID: 2100000102}
+  unitInfoPanelPrefab: {fileID: 102, guid: e42a7916c5bd4df2a61b89307c4ee518, type: 3}
   scoreText: {fileID: 36294460}
   statusText: {fileID: 1286242588}
   combatText: {fileID: 1485529276}

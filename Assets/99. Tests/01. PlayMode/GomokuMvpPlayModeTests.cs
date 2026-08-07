@@ -28,6 +28,8 @@ namespace NAN2026.Gomoku.Tests
             ShopSlotView[] shopSlots = Object.FindObjectsByType<ShopSlotView>(
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None);
+            UnitInfoPanelView infoPanel = Object.FindFirstObjectByType<UnitInfoPanelView>(
+                FindObjectsInactive.Include);
 
             Assert.That(controller, Is.Not.Null);
             Assert.That(controller.enabled, Is.True);
@@ -35,6 +37,8 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(hud, Is.Not.Null);
             Assert.That(boardView, Is.Not.Null);
             Assert.That(shopSlots, Has.Length.EqualTo(ShopState.SlotCount));
+            Assert.That(infoPanel, Is.Not.Null);
+            Assert.That(infoPanel.IsVisible, Is.False);
 
             var pointer = new PointerEventData(EventSystem.current)
             {

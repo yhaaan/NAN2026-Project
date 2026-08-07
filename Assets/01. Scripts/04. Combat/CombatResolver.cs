@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace NAN2026.Gomoku
 {
@@ -67,6 +68,18 @@ namespace NAN2026.Gomoku
                     cooldowns[unit] += unit.Definition.ActionInterval;
                 }
             }
+        }
+
+        public bool TryGetRemainingCooldown(BoardUnit unit, out float remainingSeconds)
+        {
+            if (unit != null && unit.IsAlive && cooldowns.TryGetValue(unit, out float cooldown))
+            {
+                remainingSeconds = Mathf.Max(0f, cooldown);
+                return true;
+            }
+
+            remainingSeconds = 0f;
+            return false;
         }
 
         private void Act(BoardUnit actor)

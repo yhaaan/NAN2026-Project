@@ -292,9 +292,7 @@ namespace NAN2026.Gomoku
                 }
 
                 BoardUnit unit = game.GetUnit(x, y);
-                SetPointerState(unit != null && unit.Side != playerSide
-                    ? BoardPointerState.ForUnit(unit)
-                    : BoardPointerState.None);
+                SetPointerState(BoardPointerState.ForUnit(unit));
                 return;
             }
 

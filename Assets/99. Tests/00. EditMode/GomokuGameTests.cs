@@ -26,6 +26,7 @@ namespace NAN2026.Gomoku.Tests
 
             Assert.That(game.CurrentTurn, Is.EqualTo(StoneColor.Black));
             Assert.That(game.Phase, Is.EqualTo(GamePhase.Placement));
+            Assert.That(game.TurnNumber, Is.EqualTo(1));
         }
 
         [Test]
@@ -36,13 +37,30 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(game.TryPlace(7, 7, unit), Is.True);
             Assert.That(game.GetStone(7, 7), Is.EqualTo(StoneColor.Black));
             Assert.That(game.CurrentTurn, Is.EqualTo(StoneColor.White));
+            Assert.That(game.TurnNumber, Is.EqualTo(1));
 
             Assert.That(game.TryPlace(8, 7, unit), Is.True);
             Assert.That(game.GetStone(8, 7), Is.EqualTo(StoneColor.White));
             Assert.That(game.Phase, Is.EqualTo(GamePhase.Combat));
+            Assert.That(game.TurnNumber, Is.EqualTo(1));
 
             game.CompleteCombat();
             Assert.That(game.CurrentTurn, Is.EqualTo(StoneColor.Black));
+            Assert.That(game.TurnNumber, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void StartNewGame_ResetsTurnNumberAfterCompletedCombat()
+        {
+            var game = new GomokuGame();
+            game.TryPlace(7, 7, unit);
+            game.TryPlace(8, 7, unit);
+            game.CompleteCombat();
+
+            game.StartNewGame(StoneColor.White);
+
+            Assert.That(game.TurnNumber, Is.EqualTo(1));
+            Assert.That(game.CurrentTurn, Is.EqualTo(StoneColor.White));
         }
 
         [Test]

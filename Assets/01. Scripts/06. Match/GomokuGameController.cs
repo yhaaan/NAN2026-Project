@@ -21,7 +21,6 @@ namespace NAN2026.Gomoku
         private int selectedOffer = -1;
         private int playerWins;
         private int comWins;
-        private int gameNumber;
         private float comDelayRemaining;
         private bool comTurnPending;
         private bool waitingForContinue;
@@ -67,7 +66,7 @@ namespace NAN2026.Gomoku
             {
                 combat.Tick(Time.deltaTime);
                 hud.RefreshBoard();
-                hud.SetCombatStatus(Mathf.Max(0f, combat.Duration - combat.Elapsed), combat.LastAction);
+                hud.SetCombatElapsed(combat.Elapsed);
 
                 if (combat.IsFinished)
                 {
@@ -81,7 +80,6 @@ namespace NAN2026.Gomoku
         {
             playerWins = 0;
             comWins = 0;
-            gameNumber = 1;
             matchFinished = false;
             lastGameWasDraw = false;
             waitingForContinue = false;
@@ -99,14 +97,13 @@ namespace NAN2026.Gomoku
             waitingForContinue = false;
             hud.BindGame(game, playerSide);
             hud.HideResult();
-            RefreshHeader("New game");
             PreparePlacementTurn();
         }
 
         private void PreparePlacementTurn()
         {
             hud.RefreshBoard();
-            hud.ClearCombatStatus();
+            hud.HideCombatTimer();
 
             if (game.CurrentTurn == playerSide)
             {
@@ -114,17 +111,17 @@ namespace NAN2026.Gomoku
                 selectedOffer = -1;
                 comTurnPending = false;
                 hud.ShowShop(playerShop.Offers, playerShop.Gold, selectedOffer, true);
-                RefreshHeader("Choose a unit, then place it");
             }
             else
             {
                 comShop.BeginPlacementTurn();
                 selectedOffer = -1;
                 hud.ShowShop(playerShop.Offers, playerShop.Gold, selectedOffer, false);
-                RefreshHeader("COM is thinking...");
                 comDelayRemaining = comPlacementDelay;
                 comTurnPending = true;
             }
+
+            RefreshTurnStatus();
         }
 
         private void HandleShopSelection(int offerIndex)
@@ -204,8 +201,9 @@ namespace NAN2026.Gomoku
             else if (game.Phase == GamePhase.Combat)
             {
                 hud.HideShop();
-                RefreshHeader("Auto combat");
                 combat.Begin(game);
+                hud.ShowCombatTimer(combat.Duration);
+                RefreshTurnStatus();
             }
             else
             {
@@ -253,7 +251,8 @@ namespace NAN2026.Gomoku
                 : matchFinished ? "Restart Match" : "Next Game";
 
             hud.HideShop();
-            RefreshHeader(title);
+            hud.HideCombatTimer();
+            RefreshTurnStatus();
             hud.ShowResult(title, $"Player {playerWins} : {comWins} COM", buttonLabel);
         }
 
@@ -274,17 +273,16 @@ namespace NAN2026.Gomoku
             }
             else
             {
-                gameNumber++;
                 StartGame();
             }
         }
 
-        private void RefreshHeader(string message)
+        private void RefreshTurnStatus()
         {
-            string playerColor = playerSide == StoneColor.Black ? "Black" : "White";
-            hud.SetHeader(
-                $"Game {gameNumber}  |  Player {playerWins} : {comWins} COM  |  You are {playerColor}",
-                message);
+            TurnUiPhase phase = game.Phase == GamePhase.Combat
+                ? TurnUiPhase.Combat
+                : game.CurrentTurn == playerSide ? TurnUiPhase.Player : TurnUiPhase.Enemy;
+            hud.SetTurnStatus(game.TurnNumber, phase, playerWins, comWins);
         }
     }
 }

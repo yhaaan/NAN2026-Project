@@ -41,6 +41,7 @@ namespace NAN2026.Gomoku
         public GamePhase Phase { get; private set; } = GamePhase.Placement;
         public int LastMoveX { get; private set; } = -1;
         public int LastMoveY { get; private set; } = -1;
+        public int TurnNumber { get; private set; } = 1;
         public bool IsGameOver => Phase == GamePhase.GameOver;
         public IReadOnlyList<BoardUnit> Units => units;
 
@@ -64,6 +65,7 @@ namespace NAN2026.Gomoku
             Phase = GamePhase.Placement;
             LastMoveX = -1;
             LastMoveY = -1;
+            TurnNumber = 1;
             nextPlacementOrder = 0;
             placementsInCycle = 0;
         }
@@ -136,6 +138,7 @@ namespace NAN2026.Gomoku
             }
 
             placementsInCycle = 0;
+            TurnNumber++;
             CurrentTurn = StartingSide;
             Phase = GamePhase.Placement;
         }

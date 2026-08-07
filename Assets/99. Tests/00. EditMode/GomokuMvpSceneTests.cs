@@ -20,6 +20,7 @@ namespace NAN2026.Gomoku.Tests
             GomokuGameController controller = FindInScene<GomokuGameController>(scene);
             GomokuBoardView boardView = FindInScene<GomokuBoardView>(scene);
             PlacementCursorView cursorView = FindInScene<PlacementCursorView>(scene);
+            TurnStatusView turnStatusView = FindInScene<TurnStatusView>(scene);
             ShopSlotView[] shopSlots = FindAllInScene<ShopSlotView>(scene);
 
             Assert.That(canvas, Is.Not.Null);
@@ -27,6 +28,7 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(controller, Is.Not.Null);
             Assert.That(boardView, Is.Not.Null);
             Assert.That(cursorView, Is.Not.Null);
+            Assert.That(turnStatusView, Is.Not.Null);
             Assert.That(cursorView.GetComponent<CanvasRenderer>(), Is.Not.Null);
             Assert.That(boardView.GetComponent<CanvasRenderer>(), Is.Not.Null);
             Assert.That(shopSlots, Has.Length.EqualTo(ShopState.SlotCount));
@@ -51,6 +53,7 @@ namespace NAN2026.Gomoku.Tests
             var serializedHud = new SerializedObject(hud);
             Assert.That(serializedHud.FindProperty("shopSlots").arraySize, Is.EqualTo(ShopState.SlotCount));
             Assert.That(serializedHud.FindProperty("placementCursorView").objectReferenceValue, Is.SameAs(cursorView));
+            Assert.That(serializedHud.FindProperty("turnStatusView").objectReferenceValue, Is.SameAs(turnStatusView));
             UnitInfoPanelView infoPanelPrefab = serializedHud.FindProperty("unitInfoPanelPrefab").objectReferenceValue
                 as UnitInfoPanelView;
             Assert.That(infoPanelPrefab, Is.Not.Null);
@@ -60,6 +63,20 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(
                 infoPanelPrefab.GetComponentsInChildren<UnityEngine.UI.Slider>(true),
                 Has.Length.EqualTo(2));
+
+            GameObject turnStatusSource = PrefabUtility.GetCorrespondingObjectFromSource(
+                turnStatusView.gameObject);
+            Assert.That(turnStatusSource, Is.Not.Null);
+            Assert.That(
+                AssetDatabase.GetAssetPath(turnStatusSource),
+                Is.EqualTo("Assets/02. Prefabs/02. UI/TurnStatusPanel.prefab"));
+            UnityEngine.UI.Slider combatSlider = turnStatusView.GetComponentInChildren<
+                UnityEngine.UI.Slider>(true);
+            Assert.That(combatSlider, Is.Not.Null);
+            Assert.That(combatSlider.interactable, Is.False);
+            Assert.That(combatSlider.direction, Is.EqualTo(UnityEngine.UI.Slider.Direction.LeftToRight));
+            Assert.That(FindTransform(scene, "TopBar"), Is.Null);
+            Assert.That(FindTransform(scene, "CombatText"), Is.Null);
 
             var serializedBoard = new SerializedObject(boardView);
             Assert.That(serializedBoard.FindProperty("attackDamagePopup").objectReferenceValue, Is.Not.Null);

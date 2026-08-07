@@ -11,9 +11,7 @@ namespace NAN2026.Gomoku
         [SerializeField] private GomokuBoardView boardView;
         [SerializeField] private PlacementCursorView placementCursorView;
         [SerializeField] private UnitInfoPanelView unitInfoPanelPrefab;
-        [SerializeField] private Text scoreText;
-        [SerializeField] private Text statusText;
-        [SerializeField] private Text combatText;
+        [SerializeField] private TurnStatusView turnStatusView;
         [SerializeField] private GameObject shopPanel;
         [SerializeField] private Text goldText;
         [SerializeField] private Text selectedText;
@@ -81,10 +79,13 @@ namespace NAN2026.Gomoku
             combat = resolver;
         }
 
-        public void SetHeader(string score, string status)
+        public void SetTurnStatus(
+            int turnNumber,
+            TurnUiPhase phase,
+            int playerScore,
+            int enemyScore)
         {
-            scoreText.text = score;
-            statusText.text = status;
+            turnStatusView.SetHeader(turnNumber, phase, playerScore, enemyScore);
         }
 
         public void ShowShop(
@@ -127,17 +128,19 @@ namespace NAN2026.Gomoku
             boardView.SetPlacementPreview(null);
         }
 
-        public void SetCombatStatus(float remainingSeconds, string action)
+        public void ShowCombatTimer(float duration)
         {
-            combatText.gameObject.SetActive(true);
-            combatText.text = string.IsNullOrEmpty(action)
-                ? $"Combat {remainingSeconds:0.0}s"
-                : $"Combat {remainingSeconds:0.0}s  |  {action}";
+            turnStatusView.ShowCombatTimer(duration);
         }
 
-        public void ClearCombatStatus()
+        public void SetCombatElapsed(float elapsedSeconds)
         {
-            combatText.gameObject.SetActive(false);
+            turnStatusView.SetCombatElapsed(elapsedSeconds);
+        }
+
+        public void HideCombatTimer()
+        {
+            turnStatusView.HideCombatTimer();
         }
 
         public void RefreshBoard()

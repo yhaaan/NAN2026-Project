@@ -165,8 +165,13 @@ namespace NAN2026.Gomoku
             hud.RefreshBoard();
             hud.HideCombatTimer();
 
+            StoneColor currentSide = game.CurrentTurn;
+            int unitDeficit = game.CountUnits(GomokuGame.OpponentOf(currentSide))
+                - game.CountUnits(currentSide);
+
             if (game.CurrentTurn == playerSide)
             {
+                playerShop.SetComebackDeficit(unitDeficit);
                 playerShop.BeginPlacementTurn();
                 selectedOffer = -1;
                 comTurnPending = false;
@@ -174,6 +179,7 @@ namespace NAN2026.Gomoku
             }
             else
             {
+                comShop.SetComebackDeficit(unitDeficit);
                 comShop.BeginPlacementTurn();
                 selectedOffer = -1;
                 hud.ShowShop(playerShop.Offers, playerShop.Gold, selectedOffer, false);

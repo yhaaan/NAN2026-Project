@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4840e49f66c94676b612268b87dfd148, type: 3}
+  m_Name: Cheerleader
+  m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitDefinitionSO
+  unitId: epic-cheerleader
+  displayName: "\uCE58\uC5B4\uB9AC\uB354"
+  description: "\uC8FC\uBCC0 \uACF5\uACA9\uD615 \uC544\uAD70\uC758 \uACF5\uACA9\uC18D\uB3C4\uB97C
+    30% \uC99D\uAC00\uC2DC\uD0B5\uB2C8\uB2E4"
+  grade: 2
+  role: 2
+  ability: 8
+  maxHealth: 145
+  power: 0
+  range: 1
+  actionInterval: 1
+  abilityPower: 0
+  abilityRatio: 0.3
+  roleColor: {r: 1, g: 1, b: 1, a: 1}
+  action: {fileID: 11400000, guid: 547f5c264eb45aec9b7e05b7413f6375, type: 2}
+  presentation: {fileID: 11400000, guid: cbe6c39db52b4153ce5f7c2eb8a6daec, type: 2}

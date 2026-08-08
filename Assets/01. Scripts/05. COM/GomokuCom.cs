@@ -228,22 +228,22 @@ namespace NAN2026.Gomoku
             StoneColor side)
         {
             float interval = Math.Max(0.1f, definition.ActionInterval);
-            float actionPower = definition.Power / interval;
+            float actionPower = definition.IsSupport ? 0f : definition.Power / interval;
             float incomingPower = 0f;
             float outgoingOpportunity = 0f;
             float healingOpportunity = 0f;
             float alliedHealingSupport = 0f;
             int nearbyAllies = 0;
+            int adjacentAllies = 0;
+            int adjacentEnemies = 0;
 
             foreach (BoardUnit unit in game.Units)
             {
                 int distance = Math.Max(Math.Abs(x - unit.X), Math.Abs(y - unit.Y));
                 if (unit.Side == side)
                 {
-                    if (distance <= Math.Max(1, definition.Range))
-                    {
-                        nearbyAllies++;
-                    }
+                    if (distance <= Math.Max(1, definition.Range)) nearbyAllies++;
+                    if (distance <= 1) adjacentAllies++;
 
                     if (definition.IsHealer && distance <= definition.Range)
                     {
@@ -260,18 +260,15 @@ namespace NAN2026.Gomoku
                     continue;
                 }
 
-                if (!definition.IsHealer && distance <= definition.Range)
+                if (distance <= 1) adjacentEnemies++;
+                if (!definition.IsSupport && distance <= definition.Range)
                 {
                     float targetImportance = 1f + EvaluateExistingConnection(game, unit) * 0.3f;
-                    if (unit.CurrentHealth <= definition.Power)
-                    {
-                        targetImportance += 0.5f;
-                    }
-
+                    if (unit.CurrentHealth <= definition.Power) targetImportance += 0.5f;
                     outgoingOpportunity += actionPower * targetImportance;
                 }
 
-                if (!unit.Definition.IsHealer && distance <= unit.Definition.Range)
+                if (!unit.Definition.IsSupport && distance <= unit.Definition.Range)
                 {
                     incomingPower += unit.Definition.Power
                         / Math.Max(0.1f, unit.Definition.ActionInterval);
@@ -282,6 +279,7 @@ namespace NAN2026.Gomoku
             score += outgoingOpportunity * 2.2f;
             score += healingOpportunity * 2f;
             score += alliedHealingSupport * 0.8f;
+            score += (int)definition.Grade * 18f;
 
             if (incomingPower > 0f)
             {
@@ -289,16 +287,134 @@ namespace NAN2026.Gomoku
                 score -= incomingPower * 0.35f;
             }
 
-            if (definition.Role == UnitRole.Tank)
+            switch (definition.Ability)
             {
-                score += nearbyAllies * 9f;
-            }
-            else if (definition.IsHealer)
-            {
-                score += nearbyAllies * 13f;
+                case UnitAbility.DeathExplosion:
+                    score += adjacentEnemies * definition.AbilityPower * 2f;
+                    score -= adjacentAllies * definition.AbilityPower * 2.4f;
+                    break;
+                case UnitAbility.IsolatedAssault:
+                    score += adjacentAllies == 0 ? definition.AbilityPower * 7f : -adjacentAllies * 240f;
+                    break;
+                case UnitAbility.DamageReduction:
+                    score += incomingPower * definition.AbilityRatio * 2.5f;
+                    break;
+                case UnitAbility.PiercingShot:
+                    score += BestRayEnemyCount(game, x, y, definition.Range, side) * definition.Power * 4f;
+                    break;
+                case UnitAbility.WeakenAura:
+                    score += EnemyPowerInRange(game, x, y, definition.Range, side)
+                        * definition.AbilityRatio * 3f;
+                    break;
+                case UnitAbility.HasteAura:
+                    score += AllyPowerInRange(game, x, y, definition.Range, side)
+                        * definition.AbilityRatio * 3f;
+                    break;
+                case UnitAbility.Meteor:
+                    score += BestEnemyCluster(game, x, y, definition.Range, side) * definition.Power * 3f;
+                    break;
+                case UnitAbility.DamageRedirect:
+                    score += adjacentAllies * 32f;
+                    break;
+                case UnitAbility.PhoenixRebirth:
+                    score += definition.MaxHealth * definition.AbilityRatio * 0.25f;
+                    break;
+                case UnitAbility.ChainLightning:
+                    score += Math.Min(3, CountEnemiesInRange(game, x, y, definition.Range, side))
+                        * definition.Power * 2.5f;
+                    break;
+                case UnitAbility.SaintProtection:
+                    score += nearbyAllies * 28f;
+                    break;
             }
 
+            if (definition.Role == UnitRole.Guardian) score += nearbyAllies * 9f;
+            else if (definition.IsHealer) score += nearbyAllies * 13f;
             return score;
+        }
+
+        private static int BestRayEnemyCount(
+            GomokuGame game, int x, int y, int range, StoneColor side)
+        {
+            int best = 0;
+            foreach ((int stepX, int stepY) in new[]
+            {
+                (1, 0), (-1, 0), (0, 1), (0, -1),
+                (1, 1), (1, -1), (-1, 1), (-1, -1)
+            })
+            {
+                int count = 0;
+                for (int distance = 1; distance <= range; distance++)
+                {
+                    int targetX = x + stepX * distance;
+                    int targetY = y + stepY * distance;
+                    if (!IsInsideBoard(targetX, targetY)) break;
+                    StoneColor stone = game.GetStone(targetX, targetY);
+                    if (stone != StoneColor.None && stone != side) count++;
+                }
+                best = Math.Max(best, count);
+            }
+            return best;
+        }
+
+        private static float EnemyPowerInRange(
+            GomokuGame game, int x, int y, int range, StoneColor side)
+        {
+            float power = 0f;
+            foreach (BoardUnit unit in game.Units)
+            {
+                int distance = Math.Max(Math.Abs(x - unit.X), Math.Abs(y - unit.Y));
+                if (unit.Side != side && !unit.Definition.IsSupport && distance <= range)
+                {
+                    power += unit.Definition.Power / Math.Max(0.1f, unit.Definition.ActionInterval);
+                }
+            }
+            return power;
+        }
+
+        private static float AllyPowerInRange(
+            GomokuGame game, int x, int y, int range, StoneColor side)
+        {
+            float power = 0f;
+            foreach (BoardUnit unit in game.Units)
+            {
+                int distance = Math.Max(Math.Abs(x - unit.X), Math.Abs(y - unit.Y));
+                if (unit.Side == side && !unit.Definition.IsSupport && distance <= range)
+                {
+                    power += unit.Definition.Power / Math.Max(0.1f, unit.Definition.ActionInterval);
+                }
+            }
+            return power;
+        }
+
+        private static int BestEnemyCluster(
+            GomokuGame game, int x, int y, int range, StoneColor side)
+        {
+            int best = 0;
+            foreach (BoardUnit target in game.Units)
+            {
+                int distance = Math.Max(Math.Abs(x - target.X), Math.Abs(y - target.Y));
+                if (target.Side == side || distance > range) continue;
+                int cluster = 0;
+                foreach (BoardUnit candidate in game.Units)
+                {
+                    if (candidate.Side != side && target.DistanceTo(candidate) <= 1) cluster++;
+                }
+                best = Math.Max(best, cluster);
+            }
+            return best;
+        }
+
+        private static int CountEnemiesInRange(
+            GomokuGame game, int x, int y, int range, StoneColor side)
+        {
+            int count = 0;
+            foreach (BoardUnit unit in game.Units)
+            {
+                int distance = Math.Max(Math.Abs(x - unit.X), Math.Abs(y - unit.Y));
+                if (unit.Side != side && distance <= range) count++;
+            }
+            return count;
         }
 
         private static int EvaluateExistingConnection(GomokuGame game, BoardUnit unit)

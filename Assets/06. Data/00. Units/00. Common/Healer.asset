@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4840e49f66c94676b612268b87dfd148, type: 3}
+  m_Name: Healer
+  m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitDefinitionSO
+  unitId: common-healer
+  displayName: "\uCE58\uC720\uC0AC"
+  description: "\uC8FC\uBCC0 1\uCE78\uC758 \uBD80\uC0C1 \uC544\uAD70 \uC804\uCCB4\uB97C
+    \uD68C\uBCF5\uD569\uB2C8\uB2E4"
+  grade: 0
+  role: 2
+  ability: 1
+  maxHealth: 90
+  power: 11
+  range: 1
+  actionInterval: 1.4
+  abilityPower: 0
+  abilityRatio: 0
+  roleColor: {r: 0.25, g: 0.85, b: 0.42, a: 1}
+  action: {fileID: 11400000, guid: 547f5c264eb45aec9b7e05b7413f6375, type: 2}
+  presentation: {fileID: 11400000, guid: cbe6c39db52b4153ce5f7c2eb8a6daec, type: 2}

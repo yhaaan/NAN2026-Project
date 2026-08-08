@@ -43,6 +43,7 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(boardView.WorldView, Is.Not.Null);
             Assert.That(placementCursor, Is.Not.Null);
             Assert.That(shopSlots, Has.Length.EqualTo(ShopState.SlotCount));
+
             Assert.That(infoPanel, Is.Not.Null);
             Assert.That(infoPanel.IsVisible, Is.False);
             Assert.That(turnStatusView, Is.Not.Null);
@@ -97,6 +98,17 @@ namespace NAN2026.Gomoku.Tests
 
             yield return new WaitForSeconds(0.6f);
             Assert.That(phaseText.text, Is.EqualTo("플레이어 턴"));
+            foreach (ShopSlotView shopSlot in shopSlots)
+            {
+                Text unitLabel = shopSlot.transform.Find("Name").GetComponent<Text>();
+                Assert.That(unitLabel.text, Does.Contain(" · "));
+                bool hasRole = unitLabel.text.Contains("수호군")
+                    || unitLabel.text.Contains("돌격군")
+                    || unitLabel.text.Contains("사격군")
+                    || unitLabel.text.Contains("술사")
+                    || unitLabel.text.Contains("지원군");
+                Assert.That(hasRole, Is.True);
+            }
             Assert.That(boardView.WorldView.ActiveUnitViewCount, Is.EqualTo(1));
             UnitHealthBarView[] initialHealthBars = Object.FindObjectsByType<UnitHealthBarView>(
                 FindObjectsInactive.Exclude,

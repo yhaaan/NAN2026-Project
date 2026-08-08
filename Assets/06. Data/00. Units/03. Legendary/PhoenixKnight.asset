@@ -10,16 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4840e49f66c94676b612268b87dfd148, type: 3}
-  m_Name: Melee
+  m_Name: PhoenixKnight
   m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitDefinitionSO
-  unitId: melee
-  displayName: 돌격병
-  description: 근거리에서 큰 피해를 줍니다
+  unitId: legendary-phoenix-knight
+  displayName: "\uBD88\uC0AC\uC870 \uAE30\uC0AC"
+  description: "\uC0DD\uC560 \uCD5C\uCD08 \uCE58\uBA85 \uD53C\uD574 \uC2DC \uCCB4\uB825
+    50%\uB85C \uBD80\uD65C\uD558\uACE0 \uC8FC\uBCC0 \uC801\uC5D0\uAC8C \uD53C\uD574\uB97C
+    \uC90D\uB2C8\uB2E4"
+  grade: 3
   role: 1
-  maxHealth: 100
-  power: 30
+  ability: 11
+  maxHealth: 190
+  power: 24
   range: 1
-  actionInterval: 1
-  roleColor: {r: 0.95, g: 0.28, b: 0.22, a: 1}
+  actionInterval: 0.9
+  abilityPower: 40
+  abilityRatio: 0.5
+  roleColor: {r: 1, g: 1, b: 1, a: 1}
   action: {fileID: 11400000, guid: 436e4b153da349dbc06df4a6302e5264, type: 2}
   presentation: {fileID: 11400000, guid: bad5b28ca41a4042bd4e6b1da795c9db, type: 2}

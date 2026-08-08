@@ -163,16 +163,17 @@ namespace NAN2026.Gomoku
 
             switch (role)
             {
-                case UnitRole.Melee:
+                case UnitRole.Vanguard:
                     PlayMeleeAction(target, direction);
                     break;
-                case UnitRole.Ranged:
+                case UnitRole.Marksman:
+                case UnitRole.Caster:
                     PlayRangedAction(target, direction);
                     break;
-                case UnitRole.Healer:
+                case UnitRole.Support:
                     PlayHealerAction();
                     break;
-                case UnitRole.Tank:
+                case UnitRole.Guardian:
                     PlayTankAction(target, direction);
                     break;
                 default:

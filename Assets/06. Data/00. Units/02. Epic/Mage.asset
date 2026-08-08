@@ -10,16 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4840e49f66c94676b612268b87dfd148, type: 3}
-  m_Name: Tank
+  m_Name: Mage
   m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitDefinitionSO
-  unitId: tank
-  displayName: 수호자
-  description: 적의 공격을 먼저 받습니다
-  role: 0
-  maxHealth: 200
-  power: 10
-  range: 1
-  actionInterval: 1.5
-  roleColor: {r: 0.25, g: 0.55, b: 0.95, a: 1}
+  unitId: epic-mage
+  displayName: "\uB9C8\uBC95\uC0AC"
+  description: "\uB300\uC0C1 \uC8FC\uBCC0 1\uCE78\uC758 \uC801\uC5D0\uAC8C \uBA54\uD14C\uC624
+    \uD53C\uD574\uB97C \uC90D\uB2C8\uB2E4"
+  grade: 2
+  role: 4
+  ability: 9
+  maxHealth: 105
+  power: 38
+  range: 3
+  actionInterval: 3
+  abilityPower: 0
+  abilityRatio: 0
+  roleColor: {r: 1, g: 1, b: 1, a: 1}
   action: {fileID: 11400000, guid: 436e4b153da349dbc06df4a6302e5264, type: 2}
-  presentation: {fileID: 11400000, guid: a9c4a17b93094f31ac3d5a0c9684b8ca, type: 2}
+  presentation: {fileID: 11400000, guid: dcf7d4aec63c4264df608d3fc9b7ebfd, type: 2}

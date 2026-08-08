@@ -10,16 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4840e49f66c94676b612268b87dfd148, type: 3}
-  m_Name: Ranged
+  m_Name: StormSage
   m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitDefinitionSO
-  unitId: ranged
-  displayName: 궁수
-  description: 먼 거리의 적을 공격합니다
-  role: 3
-  maxHealth: 70
-  power: 18
+  unitId: legendary-storm-sage
+  displayName: "\uD3ED\uD48D \uD604\uC790"
+  description: "\uCD5C\uB300 \uC138 \uBA85\uC758 \uC801\uC5D0\uAC8C \uAC10\uC18C\uD558\uB294
+    \uC5F0\uC1C4 \uBC88\uAC1C\uB97C \uC0AC\uC6A9\uD569\uB2C8\uB2E4"
+  grade: 3
+  role: 4
+  ability: 12
+  maxHealth: 130
+  power: 34
   range: 3
-  actionInterval: 1.2
-  roleColor: {r: 0.75, g: 0.35, b: 0.95, a: 1}
+  actionInterval: 2.4
+  abilityPower: 0
+  abilityRatio: 0
+  roleColor: {r: 1, g: 1, b: 1, a: 1}
   action: {fileID: 11400000, guid: 436e4b153da349dbc06df4a6302e5264, type: 2}
   presentation: {fileID: 11400000, guid: dcf7d4aec63c4264df608d3fc9b7ebfd, type: 2}

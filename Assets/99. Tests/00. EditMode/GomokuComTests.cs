@@ -97,11 +97,11 @@ namespace NAN2026.Gomoku.Tests
         public void ChooseMove_PrefersDurableUnitWhenWinningStoneWillBeAttacked()
         {
             UnitDefinitionSO enemy = TestUnitFactory.Create(
-                "Enemy Attacker", UnitRole.Ranged, 100, 30, 1, 1f);
+                "Enemy Attacker", UnitRole.Marksman, 100, 30, 1, 1f);
             UnitDefinitionSO fragile = TestUnitFactory.Create(
-                "Fragile", UnitRole.Melee, 40, 10, 1, 1f);
+                "Fragile", UnitRole.Vanguard, 40, 10, 1, 1f);
             UnitDefinitionSO tank = TestUnitFactory.Create(
-                "Durable Tank", UnitRole.Tank, 300, 10, 1, 1f);
+                "Durable Tank", UnitRole.Guardian, 300, 10, 1, 1f);
 
             try
             {

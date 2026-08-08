@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4840e49f66c94676b612268b87dfd148, type: 3}
+  m_Name: IronGuardian
+  m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitDefinitionSO
+  unitId: rare-iron-guardian
+  displayName: "\uCCA0\uAC11 \uC218\uD638\uC790"
+  description: "\uBC1B\uB294 \uD53C\uD574\uAC00 15% \uAC10\uC18C\uD558\uB294 \uB2E8\uB2E8\uD55C
+    \uC218\uD638\uAD70\uC785\uB2C8\uB2E4"
+  grade: 1
+  role: 0
+  ability: 4
+  maxHealth: 270
+  power: 7
+  range: 1
+  actionInterval: 1.6
+  abilityPower: 0
+  abilityRatio: 0.15
+  roleColor: {r: 1, g: 1, b: 1, a: 1}
+  action: {fileID: 11400000, guid: 436e4b153da349dbc06df4a6302e5264, type: 2}
+  presentation: {fileID: 11400000, guid: a9c4a17b93094f31ac3d5a0c9684b8ca, type: 2}

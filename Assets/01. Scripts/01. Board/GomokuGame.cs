@@ -170,6 +170,20 @@ namespace NAN2026.Gomoku
             units.Remove(unit);
         }
 
+        public int CountUnits(StoneColor side)
+        {
+            int count = 0;
+            foreach (BoardUnit unit in units)
+            {
+                if (unit.Side == side && unit.IsAlive)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
         public bool HasAnyUnits(StoneColor side)
         {
             foreach (BoardUnit unit in units)

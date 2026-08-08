@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4840e49f66c94676b612268b87dfd148, type: 3}
+  m_Name: Ninja
+  m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitDefinitionSO
+  unitId: rare-ninja
+  displayName: "\uB2CC\uC790"
+  description: "\uC8FC\uBCC0\uC5D0 \uC544\uAD70\uC774 \uC5C6\uC73C\uBA74 \uACF5\uACA9\uB825\uC774
+    26\uC73C\uB85C \uC99D\uAC00\uD569\uB2C8\uB2E4"
+  grade: 1
+  role: 1
+  ability: 3
+  maxHealth: 105
+  power: 6
+  range: 1
+  actionInterval: 0.7
+  abilityPower: 26
+  abilityRatio: 0
+  roleColor: {r: 1, g: 1, b: 1, a: 1}
+  action: {fileID: 11400000, guid: 436e4b153da349dbc06df4a6302e5264, type: 2}
+  presentation: {fileID: 11400000, guid: bad5b28ca41a4042bd4e6b1da795c9db, type: 2}

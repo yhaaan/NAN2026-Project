@@ -28,12 +28,16 @@ namespace NAN2026.Gomoku
 
         public void Bind(UnitDefinitionSO definition, bool selected, bool interactable)
         {
-            nameText.text = definition.DisplayName;
-            string action = definition.IsHealer ? "회복" : "공격";
-            statsText.text = $"{definition.Description}\n체력 {definition.MaxHealth}  {action} {definition.Power}\n사거리 {definition.Range}  주기 {definition.ActionInterval:0.0}초";
-            roleColor.color = definition.RoleColor;
+            nameText.text = $"{definition.DisplayName}\n{definition.GradeDisplayName} · {definition.RoleDisplayName}";
+            string action = definition.IsSupport
+                ? definition.IsHealer ? "회복" : "지원"
+                : "공격";
+            statsText.text =
+                $"{definition.Description}\n"
+                + $"체력 {definition.MaxHealth}  {action} {definition.Power}\n"
+                + $"사거리 {definition.Range}  주기 {definition.ActionInterval:0.0}초";
+            roleColor.color = definition.GradeColor;
             button.interactable = interactable;
-
             SetSelected(selected);
         }
 

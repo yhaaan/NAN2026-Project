@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4840e49f66c94676b612268b87dfd148, type: 3}
+  m_Name: Vanguard
+  m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitDefinitionSO
+  unitId: common-vanguard
+  displayName: "\uAC80\uC0AC"
+  description: "\uADE0\uD615 \uC7A1\uD78C \uADFC\uC811 \uAE30\uBCF8\uACF5\uACA9\uC744
+    \uC0AC\uC6A9\uD569\uB2C8\uB2E4"
+  grade: 0
+  role: 1
+  ability: 0
+  maxHealth: 120
+  power: 18
+  range: 1
+  actionInterval: 1
+  abilityPower: 0
+  abilityRatio: 0
+  roleColor: {r: 0.95, g: 0.28, b: 0.22, a: 1}
+  action: {fileID: 11400000, guid: 436e4b153da349dbc06df4a6302e5264, type: 2}
+  presentation: {fileID: 11400000, guid: bad5b28ca41a4042bd4e6b1da795c9db, type: 2}

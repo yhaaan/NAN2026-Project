@@ -11,6 +11,7 @@ namespace NAN2026.Gomoku
         public int PlacementOrder { get; }
         public int CurrentHealth { get; private set; }
         public bool IsAlive => CurrentHealth > 0;
+        public bool LifetimeAbilityUsed { get; private set; }
 
         public BoardUnit(UnitDefinitionSO definition, StoneColor side, int x, int y, int placementOrder)
         {
@@ -30,6 +31,17 @@ namespace NAN2026.Gomoku
         public void Heal(int amount)
         {
             CurrentHealth = Mathf.Min(Definition.MaxHealth, CurrentHealth + Mathf.Max(0, amount));
+        }
+
+        public bool TryConsumeLifetimeAbility()
+        {
+            if (LifetimeAbilityUsed)
+            {
+                return false;
+            }
+
+            LifetimeAbilityUsed = true;
+            return true;
         }
 
         public int DistanceTo(BoardUnit other)

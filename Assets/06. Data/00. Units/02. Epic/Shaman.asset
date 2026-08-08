@@ -10,16 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4840e49f66c94676b612268b87dfd148, type: 3}
-  m_Name: Healer
+  m_Name: Shaman
   m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitDefinitionSO
-  unitId: healer
-  displayName: 치유사
-  description: 범위 내 아군 전체를 회복합니다
+  unitId: epic-shaman
+  displayName: "\uC8FC\uC220\uC0AC"
+  description: "\uC0AC\uAC70\uB9AC 2 \uB0B4 \uC801\uC758 \uACF5\uACA9\uB825\uC744
+    30% \uAC10\uC18C\uC2DC\uD0B5\uB2C8\uB2E4"
+  grade: 2
   role: 2
-  maxHealth: 80
-  power: 15
+  ability: 7
+  maxHealth: 120
+  power: 0
   range: 2
-  actionInterval: 2
-  roleColor: {r: 0.25, g: 0.85, b: 0.42, a: 1}
+  actionInterval: 1
+  abilityPower: 0
+  abilityRatio: 0.3
+  roleColor: {r: 1, g: 1, b: 1, a: 1}
   action: {fileID: 11400000, guid: 547f5c264eb45aec9b7e05b7413f6375, type: 2}
   presentation: {fileID: 11400000, guid: cbe6c39db52b4153ce5f7c2eb8a6daec, type: 2}

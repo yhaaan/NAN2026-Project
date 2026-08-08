@@ -8,10 +8,10 @@ namespace NAN2026.Gomoku.Tests
         [Test]
         public void Attack_PrioritizesTankWithinRange()
         {
-            UnitDefinitionSO attacker = TestUnitFactory.Create("Attacker", UnitRole.Ranged, 100, 25, 3, 1f);
-            UnitDefinitionSO passive = TestUnitFactory.Create("Passive", UnitRole.Healer, 100, 0, 0, 10f);
-            UnitDefinitionSO tank = TestUnitFactory.Create("Tank", UnitRole.Tank, 200, 0, 1, 10f);
-            UnitDefinitionSO target = TestUnitFactory.Create("Target", UnitRole.Melee, 70, 0, 1, 10f);
+            UnitDefinitionSO attacker = TestUnitFactory.Create("Attacker", UnitRole.Marksman, 100, 25, 3, 1f);
+            UnitDefinitionSO passive = TestUnitFactory.Create("Passive", UnitRole.Support, 100, 0, 0, 10f);
+            UnitDefinitionSO tank = TestUnitFactory.Create("Tank", UnitRole.Guardian, 200, 0, 1, 10f);
+            UnitDefinitionSO target = TestUnitFactory.Create("Target", UnitRole.Vanguard, 70, 0, 1, 10f);
 
             try
             {
@@ -41,8 +41,8 @@ namespace NAN2026.Gomoku.Tests
         [Test]
         public void LethalAttack_RemovesUnitFromBoard()
         {
-            UnitDefinitionSO attacker = TestUnitFactory.Create("Attacker", UnitRole.Melee, 100, 100, 1, 1f);
-            UnitDefinitionSO target = TestUnitFactory.Create("Target", UnitRole.Melee, 50, 0, 1, 10f);
+            UnitDefinitionSO attacker = TestUnitFactory.Create("Attacker", UnitRole.Vanguard, 100, 100, 1, 1f);
+            UnitDefinitionSO target = TestUnitFactory.Create("Target", UnitRole.Vanguard, 50, 0, 1, 10f);
 
             try
             {
@@ -85,9 +85,9 @@ namespace NAN2026.Gomoku.Tests
         [Test]
         public void Healer_ReportsAllTargetsInSingleActionEvent()
         {
-            UnitDefinitionSO ally = TestUnitFactory.Create("Ally", UnitRole.Melee, 100, 0, 1, 10f);
-            UnitDefinitionSO healer = TestUnitFactory.Create("Healer", UnitRole.Healer, 80, 10, 2, 1f);
-            UnitDefinitionSO enemy = TestUnitFactory.Create("Enemy", UnitRole.Melee, 100, 0, 1, 10f);
+            UnitDefinitionSO ally = TestUnitFactory.Create("Ally", UnitRole.Vanguard, 100, 0, 1, 10f);
+            UnitDefinitionSO healer = TestUnitFactory.Create("Healer", UnitRole.Support, 80, 10, 2, 1f);
+            UnitDefinitionSO enemy = TestUnitFactory.Create("Enemy", UnitRole.Vanguard, 100, 0, 1, 10f);
 
             try
             {
@@ -125,9 +125,9 @@ namespace NAN2026.Gomoku.Tests
         [Test]
         public void Healer_RestoresAllWoundedAlliesInRange()
         {
-            UnitDefinitionSO ally = TestUnitFactory.Create("Ally", UnitRole.Melee, 100, 0, 1, 10f);
-            UnitDefinitionSO healer = TestUnitFactory.Create("Healer", UnitRole.Healer, 80, 15, 2, 2f);
-            UnitDefinitionSO enemy = TestUnitFactory.Create("Enemy", UnitRole.Melee, 100, 0, 1, 10f);
+            UnitDefinitionSO ally = TestUnitFactory.Create("Ally", UnitRole.Vanguard, 100, 0, 1, 10f);
+            UnitDefinitionSO healer = TestUnitFactory.Create("Healer", UnitRole.Support, 80, 15, 2, 2f);
+            UnitDefinitionSO enemy = TestUnitFactory.Create("Enemy", UnitRole.Vanguard, 100, 0, 1, 10f);
 
             try
             {
@@ -169,8 +169,8 @@ namespace NAN2026.Gomoku.Tests
         [Test]
         public void RemainingCooldown_TracksEachUnitInRealTime()
         {
-            UnitDefinitionSO first = TestUnitFactory.Create("First", UnitRole.Melee, 100, 0, 1, 2f);
-            UnitDefinitionSO second = TestUnitFactory.Create("Second", UnitRole.Melee, 100, 0, 1, 3f);
+            UnitDefinitionSO first = TestUnitFactory.Create("First", UnitRole.Vanguard, 100, 0, 1, 2f);
+            UnitDefinitionSO second = TestUnitFactory.Create("Second", UnitRole.Vanguard, 100, 0, 1, 3f);
 
             try
             {

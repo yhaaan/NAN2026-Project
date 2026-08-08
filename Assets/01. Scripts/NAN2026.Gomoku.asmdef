@@ -3,6 +3,7 @@
     "rootNamespace": "NAN2026.Gomoku",
     "references": [
         "GUID:8d9e84799a3968d4ba38c55892d14093",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.Cinemachine"
     ]
 }

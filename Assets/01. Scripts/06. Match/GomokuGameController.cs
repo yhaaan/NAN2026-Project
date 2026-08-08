@@ -9,6 +9,8 @@ namespace NAN2026.Gomoku
 
         [SerializeField] private UnitCatalogSO unitCatalog;
         [SerializeField] private GomokuHud hud;
+        [SerializeField] private CameraEffectController cameraEffects;
+        [SerializeField] private AudioClip placementSfx;
         [SerializeField, Min(0f)] private float comPlacementDelay = 0.45f;
         [SerializeField, Min(1f)] private float combatDuration = 10f;
 
@@ -206,6 +208,9 @@ namespace NAN2026.Gomoku
         {
             selectedOffer = -1;
             hud.RefreshBoard();
+            hud.PlayPlacementImpact();
+            cameraEffects?.PlayPlacementShake();
+            SoundManager.Instance.PlaySfx(placementSfx);
 
             if (game.IsGameOver)
             {

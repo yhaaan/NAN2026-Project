@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 
 namespace NAN2026.Gomoku
@@ -32,8 +33,29 @@ namespace NAN2026.Gomoku
         private UnitDefinitionSO previewDefinition;
         private bool geometryCreated;
         private bool missingHealthBarReported;
+        private Tween placementImpactTween;
+        private float placementImpactOffset;
 
         public int ActiveUnitViewCount => unitViews.Count;
+
+        public void PlayPlacementImpact()
+        {
+            placementImpactTween?.Kill();
+            placementImpactOffset = 0f;
+            placementImpactTween = DOTween.Sequence()
+                .SetTarget(this)
+                .Append(DOTween.To(
+                    () => placementImpactOffset,
+                    value => placementImpactOffset = value,
+                    0.035f,
+                    0.04f).SetEase(Ease.OutQuad))
+                .Append(DOTween.To(
+                    () => placementImpactOffset,
+                    value => placementImpactOffset = value,
+                    0f,
+                    0.09f).SetEase(Ease.OutSine))
+                .OnComplete(() => placementImpactTween = null);
+        }
 
         public void Initialize(
             RectTransform targetInputRect,
@@ -239,6 +261,8 @@ namespace NAN2026.Gomoku
 
         private void OnDestroy()
         {
+            placementImpactTween?.Kill();
+
             foreach (UnitHealthBarView healthBar in healthBars.Values)
             {
                 DestroyComponentGameObject(healthBar);
@@ -366,7 +390,10 @@ namespace NAN2026.Gomoku
             float worldUnitsPerPixel = worldCamera.orthographicSize * 2f / worldCamera.pixelHeight;
             float scale = pixelSize * worldUnitsPerPixel / BoardVisualSize;
 
-            transform.position = new Vector3(worldCenter.x, worldCenter.y, 0f);
+            transform.position = new Vector3(
+                worldCenter.x,
+                worldCenter.y - placementImpactOffset,
+                0f);
             transform.localScale = Vector3.one * scale;
         }
 

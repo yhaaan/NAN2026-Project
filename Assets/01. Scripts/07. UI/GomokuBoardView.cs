@@ -85,6 +85,11 @@ namespace NAN2026.Gomoku
             UpdateWorldPointerPresentation();
         }
 
+        public void PlayPlacementImpact()
+        {
+            worldView?.PlayPlacementImpact();
+        }
+
         public void SetPlacementPreview(UnitDefinitionSO definition)
         {
             if (placementPreviewDefinition == definition)

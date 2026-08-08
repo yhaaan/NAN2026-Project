@@ -148,6 +148,11 @@ namespace NAN2026.Gomoku
             boardView.Refresh();
         }
 
+        public void PlayPlacementImpact()
+        {
+            boardView.PlayPlacementImpact();
+        }
+
         public void ShowDamage(int x, int y, int damage, bool causedByPlayer)
         {
             boardView.ShowDamage(x, y, damage, causedByPlayer);

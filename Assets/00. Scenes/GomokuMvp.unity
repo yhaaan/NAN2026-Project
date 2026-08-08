@@ -130,6 +130,9 @@ GameObject:
   - component: {fileID: 78561401}
   - component: {fileID: 78561400}
   - component: {fileID: 78561399}
+  - component: {fileID: 78561403}
+  - component: {fileID: 78561402}
+  - component: {fileID: 78561404}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -211,6 +214,99 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &78561402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 78561398}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f0a2d4c7c6b4c64b3df9216f6a4e311, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.CameraEffectController
+  impulseSource: {fileID: 78561403}
+  defaultStrength: 1
+  defaultDuration: 0.2
+  defaultDirection: {x: 0, y: -1, z: 0}
+  placementStrength: 0.01
+  placementDuration: 0.12
+--- !u!114 &78561403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 78561398}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 180ecf9b41d478f468eb3e9083753217, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineImpulseSource
+  ImpulseDefinition:
+    ImpulseChannel: 1
+    ImpulseShape: 2
+    CustomImpulseShape:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    ImpulseDuration: 0.2
+    ImpulseType: 0
+    DissipationRate: 0.25
+    RawSignal: {fileID: 0}
+    AmplitudeGain: 1
+    FrequencyGain: 1
+    RepeatMode: 0
+    Randomize: 1
+    TimeEnvelope:
+      AttackShape:
+        serializedVersion: 2
+        m_Curve: []
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      DecayShape:
+        serializedVersion: 2
+        m_Curve: []
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      AttackTime: 0
+      SustainTime: 0.2
+      DecayTime: 0.7
+      ScaleWithImpact: 1
+      HoldForever: 0
+    ImpactRadius: 100
+    DirectionMode: 0
+    DissipationMode: 2
+    DissipationDistance: 100
+    PropagationSpeed: 343
+  DefaultVelocity: {x: 0, y: -1, z: 0}
+--- !u!114 &78561404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 78561398}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c11265b855408d42af33d62691f5194, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineExternalImpulseListener
+  ChannelMask: 1
+  Gain: 1
+  Use2DDistance: 0
+  UseLocalSpace: 1
+  ReactionSettings:
+    m_SecondaryNoise: {fileID: 0}
+    AmplitudeGain: 0
+    FrequencyGain: 1
+    Duration: 0
+    m_NoiseOffsets: {x: 0, y: 0, z: 0}
 --- !u!1 &210197698 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 302196531890197888, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
@@ -252,6 +348,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.GomokuGameController
   unitCatalog: {fileID: 11400000, guid: 1d93ee024463ef248bfb2180f2c43b4c, type: 2}
   hud: {fileID: 347977219}
+  cameraEffects: {fileID: 78561402}
+  placementSfx: {fileID: 8300000, guid: 5525eb23f5cdd8f429abe6da675cd6b3, type: 3}
   comPlacementDelay: 0.45
   combatDuration: 10
 --- !u!4 &251248543
@@ -1089,6 +1187,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: ShopPanel
       objectReference: {fileID: 0}
+    - target: {fileID: 982912925100407590, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 982912925100407590, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 982912925100407590, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 357.19995
+      objectReference: {fileID: 0}
+    - target: {fileID: 982912925100407590, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -70
+      objectReference: {fileID: 0}
     - target: {fileID: 2440828124667262266, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -1168,6 +1282,70 @@ PrefabInstance:
     - target: {fileID: 2440828124667262266, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4099958993438190926, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4099958993438190926, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4099958993438190926, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 541.19995
+      objectReference: {fileID: 0}
+    - target: {fileID: 4099958993438190926, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -70
+      objectReference: {fileID: 0}
+    - target: {fileID: 5891873475710309357, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5891873475710309357, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5891873475710309357, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 909.19995
+      objectReference: {fileID: 0}
+    - target: {fileID: 5891873475710309357, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -70
+      objectReference: {fileID: 0}
+    - target: {fileID: 8178331088355047666, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8178331088355047666, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8178331088355047666, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 173.19995
+      objectReference: {fileID: 0}
+    - target: {fileID: 8178331088355047666, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -70
+      objectReference: {fileID: 0}
+    - target: {fileID: 8798937535912438220, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8798937535912438220, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8798937535912438220, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 725.19995
+      objectReference: {fileID: 0}
+    - target: {fileID: 8798937535912438220, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -70
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

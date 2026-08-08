@@ -32,6 +32,7 @@ namespace NAN2026.Gomoku
 
         private readonly BoardUnit[,] board = new BoardUnit[BoardSize, BoardSize];
         private readonly List<BoardUnit> units = new List<BoardUnit>();
+        private readonly List<BoardUnit> winningUnits = new List<BoardUnit>(StonesToWin);
         private int nextPlacementOrder;
         private int placementsInCycle;
 
@@ -44,6 +45,7 @@ namespace NAN2026.Gomoku
         public int TurnNumber { get; private set; } = 1;
         public bool IsGameOver => Phase == GamePhase.GameOver;
         public IReadOnlyList<BoardUnit> Units => units;
+        public IReadOnlyList<BoardUnit> WinningUnits => winningUnits;
 
         public GomokuGame()
         {
@@ -59,6 +61,7 @@ namespace NAN2026.Gomoku
 
             Array.Clear(board, 0, board.Length);
             units.Clear();
+            winningUnits.Clear();
             StartingSide = startingSide;
             CurrentTurn = startingSide;
             Winner = StoneColor.None;
@@ -103,7 +106,7 @@ namespace NAN2026.Gomoku
             LastMoveX = x;
             LastMoveY = y;
 
-            if (HasFiveFrom(x, y, placedSide))
+            if (TryFindWinningUnits(x, y, placedSide))
             {
                 Winner = placedSide;
                 Phase = GamePhase.GameOver;
@@ -199,18 +202,40 @@ namespace NAN2026.Gomoku
             return side == StoneColor.Black ? StoneColor.White : StoneColor.Black;
         }
 
-        private bool HasFiveFrom(int x, int y, StoneColor side)
+        private bool TryFindWinningUnits(int x, int y, StoneColor side)
         {
             foreach ((int directionX, int directionY) in Directions)
             {
-                int connected = 1
-                    + CountDirection(x, y, directionX, directionY, side)
-                    + CountDirection(x, y, -directionX, -directionY, side);
-
-                if (connected >= StonesToWin)
+                int negativeCount = CountDirection(
+                    x,
+                    y,
+                    -directionX,
+                    -directionY,
+                    side);
+                int positiveCount = CountDirection(x, y, directionX, directionY, side);
+                int connected = 1 + negativeCount + positiveCount;
+                if (connected < StonesToWin)
                 {
-                    return true;
+                    continue;
                 }
+
+                int placedIndex = negativeCount;
+                int firstValidStart = Math.Max(0, placedIndex - StonesToWin + 1);
+                int lastValidStart = Math.Min(placedIndex, connected - StonesToWin);
+                int windowStart = Math.Min(firstValidStart, lastValidStart);
+                int lineStartX = x - negativeCount * directionX;
+                int lineStartY = y - negativeCount * directionY;
+
+                winningUnits.Clear();
+                for (int index = 0; index < StonesToWin; index++)
+                {
+                    int offset = windowStart + index;
+                    winningUnits.Add(board[
+                        lineStartX + offset * directionX,
+                        lineStartY + offset * directionY]);
+                }
+
+                return true;
             }
 
             return false;

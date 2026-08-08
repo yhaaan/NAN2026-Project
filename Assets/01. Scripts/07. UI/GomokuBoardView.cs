@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DamageNumbersPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -88,6 +89,25 @@ namespace NAN2026.Gomoku
         public void PlayPlacementImpact()
         {
             worldView?.PlayPlacementImpact();
+        }
+
+        public void PrepareVictory()
+        {
+            raycastTarget = false;
+            placementPreviewDefinition = null;
+            pointerState = BoardPointerState.None;
+            worldView?.PrepareVictory();
+            UpdateWorldPointerPresentation();
+        }
+
+        public void PlayVictoryStone(BoardUnit unit, bool finalStone)
+        {
+            worldView?.PlayVictoryStone(unit, finalStone);
+        }
+
+        public void RevealVictory(IReadOnlyList<BoardUnit> winningUnits, float duration)
+        {
+            worldView?.RevealVictory(winningUnits, duration);
         }
 
         public void SetPlacementPreview(UnitDefinitionSO definition)

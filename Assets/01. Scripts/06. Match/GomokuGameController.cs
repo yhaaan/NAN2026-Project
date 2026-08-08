@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 namespace NAN2026.Gomoku
@@ -6,6 +7,11 @@ namespace NAN2026.Gomoku
     public sealed class GomokuGameController : MonoBehaviour
     {
         private const int WinsNeeded = 2;
+        private const float VictoryPauseDuration = 0.25f;
+        private const float VictoryJumpInterval = 0.16f;
+        private const float FinalJumpSettleDuration = 0.43f;
+        private const float VictoryLineDuration = 0.3f;
+        private const float MatchTitleDelay = 0.38f;
 
         [SerializeField] private UnitCatalogSO unitCatalog;
         [SerializeField] private GomokuHud hud;
@@ -28,6 +34,7 @@ namespace NAN2026.Gomoku
         private bool waitingForContinue;
         private bool matchFinished;
         private bool lastGameWasDraw;
+        private Coroutine victoryRoutine;
 
         public StoneColor PlayerSide => playerSide;
 
@@ -85,6 +92,12 @@ namespace NAN2026.Gomoku
 
         private void OnDestroy()
         {
+            if (victoryRoutine != null)
+            {
+                StopCoroutine(victoryRoutine);
+                victoryRoutine = null;
+            }
+
             if (combat != null)
             {
                 combat.ActionResolved -= HandleCombatAction;
@@ -98,6 +111,12 @@ namespace NAN2026.Gomoku
             matchFinished = false;
             lastGameWasDraw = false;
             waitingForContinue = false;
+            if (victoryRoutine != null)
+            {
+                StopCoroutine(victoryRoutine);
+                victoryRoutine = null;
+            }
+
             hud.HideResult();
             StartGame();
         }
@@ -257,7 +276,7 @@ namespace NAN2026.Gomoku
             string title = lastGameWasDraw
                 ? "Game Draw"
                 : matchFinished
-                ? (playerWins >= WinsNeeded ? "Match Victory" : "Match Defeat")
+                ? (playerWins >= WinsNeeded ? "VICTORY" : "DEFEAT")
                 : (playerWon ? "Game Victory" : "Game Defeat");
             string buttonLabel = lastGameWasDraw
                 ? "Replay Game"
@@ -265,8 +284,71 @@ namespace NAN2026.Gomoku
 
             hud.HideShop();
             hud.HideCombatTimer();
+
+            if (lastGameWasDraw)
+            {
+                RefreshTurnStatus();
+                hud.ShowResult(title, $"Player {playerWins} : {comWins} COM", buttonLabel);
+                return;
+            }
+
+            victoryRoutine = StartCoroutine(PlayVictorySequence(
+                playerWon,
+                title,
+                buttonLabel));
+        }
+
+        private IEnumerator PlayVictorySequence(
+            bool playerWon,
+            string finalTitle,
+            string buttonLabel)
+        {
+            hud.PrepareVictory();
+            yield return new WaitForSecondsRealtime(VictoryPauseDuration);
+
+            for (int index = 0; index < game.WinningUnits.Count; index++)
+            {
+                bool finalStone = index == game.WinningUnits.Count - 1;
+                hud.PlayVictoryStone(game.WinningUnits[index], finalStone);
+                SoundManager.Instance.PlaySfx(
+                    placementSfx,
+                    finalStone ? 1f : 0.78f,
+                    0.92f + index * 0.09f);
+
+                if (finalStone)
+                {
+                    cameraEffects?.PlayScreenShake(0.025f, 0.13f);
+                }
+
+                yield return new WaitForSecondsRealtime(
+                    finalStone ? FinalJumpSettleDuration : VictoryJumpInterval);
+            }
+
+            hud.RevealVictory(game.WinningUnits, VictoryLineDuration);
+            yield return new WaitForSecondsRealtime(VictoryLineDuration);
+
             RefreshTurnStatus();
-            hud.ShowResult(title, $"Player {playerWins} : {comWins} COM", buttonLabel);
+            string gameTitle = playerWon ? "GAME WIN" : "GAME LOSE";
+            hud.ShowResult(
+                gameTitle,
+                $"Player {playerWins} : {comWins} COM",
+                buttonLabel);
+            SoundManager.Instance.PlaySfx(placementSfx, 1f, 1.38f);
+
+            if (matchFinished)
+            {
+                yield return new WaitForSecondsRealtime(MatchTitleDelay);
+                hud.SetResultTitle(finalTitle);
+                SoundManager.Instance.PlaySfx(placementSfx, 1f, 1.52f);
+                if (playerWon)
+                {
+                    SoundManager.Instance.PlaySfx(placementSfx, 0.72f, 1.76f);
+                }
+
+                cameraEffects?.PlayScreenShake(playerWon ? 0.04f : 0.025f, 0.18f);
+            }
+
+            victoryRoutine = null;
         }
 
         private void HandleContinue()

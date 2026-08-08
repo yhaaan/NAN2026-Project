@@ -153,6 +153,21 @@ namespace NAN2026.Gomoku
             boardView.PlayPlacementImpact();
         }
 
+        public void PrepareVictory()
+        {
+            boardView.PrepareVictory();
+        }
+
+        public void PlayVictoryStone(BoardUnit unit, bool finalStone)
+        {
+            boardView.PlayVictoryStone(unit, finalStone);
+        }
+
+        public void RevealVictory(IReadOnlyList<BoardUnit> winningUnits, float duration)
+        {
+            boardView.RevealVictory(winningUnits, duration);
+        }
+
         public void ShowDamage(int x, int y, int damage, bool causedByPlayer)
         {
             boardView.ShowDamage(x, y, damage, causedByPlayer);
@@ -174,6 +189,11 @@ namespace NAN2026.Gomoku
             resultTitleText.text = title;
             resultScoreText.text = score;
             continueButtonText.text = buttonLabel;
+        }
+
+        public void SetResultTitle(string title)
+        {
+            resultTitleText.text = title;
         }
 
         public void HideResult()

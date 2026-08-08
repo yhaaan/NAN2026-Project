@@ -34,6 +34,8 @@ namespace NAN2026.Gomoku
         private bool geometryCreated;
         private bool missingHealthBarReported;
         private Tween placementImpactTween;
+        private Tween victoryLineTween;
+        private SpriteRenderer victoryLine;
         private float placementImpactOffset;
 
         public int ActiveUnitViewCount => unitViews.Count;
@@ -231,6 +233,82 @@ namespace NAN2026.Gomoku
             return transform.TransformPoint(CellToLocal(x, y));
         }
 
+        public void PrepareVictory()
+        {
+            ClearTransientPresentation();
+        }
+
+        public void PlayVictoryStone(BoardUnit unit, bool finalStone)
+        {
+            if (unit != null && unitViews.TryGetValue(unit, out UnitView view))
+            {
+                view.PlayVictoryJump(finalStone);
+            }
+        }
+
+        public void RevealVictory(IReadOnlyList<BoardUnit> winningUnits, float duration)
+        {
+            if (winningUnits == null || winningUnits.Count < 2)
+            {
+                return;
+            }
+
+            var winners = new HashSet<BoardUnit>(winningUnits);
+            foreach (KeyValuePair<BoardUnit, UnitView> pair in unitViews)
+            {
+                pair.Value.SetVictoryFocus(winners.Contains(pair.Key));
+            }
+
+            foreach (UnitHealthBarView healthBar in healthBars.Values)
+            {
+                healthBar.gameObject.SetActive(false);
+            }
+
+            victoryLineTween?.Kill();
+            if (victoryLine != null)
+            {
+                DestroyUnityObject(victoryLine.gameObject);
+            }
+
+            BoardUnit first = winningUnits[0];
+            BoardUnit last = winningUnits[winningUnits.Count - 1];
+            Vector3 start = CellToLocal(first.X, first.Y);
+            Vector3 end = CellToLocal(last.X, last.Y);
+            Vector3 direction = (end - start).normalized;
+            start -= direction * 0.32f;
+            end += direction * 0.32f;
+            float length = Vector3.Distance(start, end);
+
+            victoryLine = CreateRenderer(
+                overlayRoot,
+                "VictoryLine",
+                new Color(1f, 0.78f, 0.16f, 0.95f),
+                new Vector3(0f, 0.14f, 1f),
+                10,
+                "WorldVfx");
+            victoryLine.transform.localPosition = start;
+            victoryLine.transform.localRotation = Quaternion.Euler(
+                0f,
+                0f,
+                Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
+
+            float progress = 0f;
+            victoryLineTween = DOTween.To(
+                    () => progress,
+                    value =>
+                    {
+                        progress = value;
+                        victoryLine.transform.localPosition = Vector3.Lerp(start, end, value * 0.5f);
+                        victoryLine.transform.localScale = new Vector3(length * value, 0.14f, 1f);
+                    },
+                    1f,
+                    Mathf.Max(0.01f, duration))
+                .SetEase(Ease.OutCubic)
+                .SetUpdate(true)
+                .SetTarget(this)
+                .OnComplete(() => victoryLineTween = null);
+        }
+
         public void ClearTransientPresentation()
         {
             HidePreview();
@@ -239,6 +317,14 @@ namespace NAN2026.Gomoku
 
         public void ClearAllUnits()
         {
+            victoryLineTween?.Kill();
+            victoryLineTween = null;
+            if (victoryLine != null)
+            {
+                DestroyUnityObject(victoryLine.gameObject);
+                victoryLine = null;
+            }
+
             foreach (UnitView view in unitViews.Values)
             {
                 DestroyComponentGameObject(view);
@@ -262,6 +348,7 @@ namespace NAN2026.Gomoku
         private void OnDestroy()
         {
             placementImpactTween?.Kill();
+            victoryLineTween?.Kill();
 
             foreach (UnitHealthBarView healthBar in healthBars.Values)
             {

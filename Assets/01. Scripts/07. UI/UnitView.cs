@@ -31,6 +31,7 @@ namespace NAN2026.Gomoku
         private bool preview;
         private bool visualsInitialized;
         private bool usesGeneratedStone;
+        private StoneColor boundSide;
         private UnitRole role;
         private static Material runtimeParticleMaterial;
 
@@ -56,6 +57,7 @@ namespace NAN2026.Gomoku
             KillTweens();
             isBound = true;
             accentColor = presentation != null ? presentation.AccentColor : targetUnit.Definition.RoleColor;
+            boundSide = targetUnit.Side;
             role = targetUnit.Definition.Role;
             restLocalPosition = transform.localPosition;
             transform.localScale = Vector3.one;
@@ -79,6 +81,66 @@ namespace NAN2026.Gomoku
         public void SetPreview(bool value)
         {
             preview = value;
+        }
+
+        public void SetVictoryFocus(bool focused)
+        {
+            EnsureVisuals();
+            float alphaMultiplier = focused ? 1f : 0.28f;
+            if (usesGeneratedStone)
+            {
+                bodyRenderer.color = WithAlpha(OuterColor(boundSide), alphaMultiplier);
+                innerRenderer.color = WithAlpha(innerColor, alphaMultiplier);
+                accentRenderer.color = WithAlpha(accentColor, alphaMultiplier);
+            }
+            else
+            {
+                bodyRenderer.color = WithAlpha(
+                    authoredBodyColor,
+                    authoredBodyColor.a * alphaMultiplier);
+            }
+        }
+
+        public void PlayVictoryJump(bool finalStone)
+        {
+            if (IsDying || preview)
+            {
+                return;
+            }
+
+            StopMotionTween();
+            float height = finalStone ? 0.62f : 0.42f;
+            float riseDuration = finalStone ? 0.16f : 0.13f;
+            float fallDuration = finalStone ? 0.14f : 0.12f;
+            float landingScale = finalStone ? 1.22f : 1.12f;
+            Sequence victorySequence = DOTween.Sequence();
+            victorySequence.SetTarget(this);
+            victorySequence.SetUpdate(true);
+            victorySequence
+                .Append(transform.DOLocalMove(restLocalPosition + Vector3.up * height, riseDuration)
+                    .SetEase(Ease.OutQuad))
+                .Join(transform.DOScale(finalStone ? 1.12f : 1.06f, riseDuration)
+                    .SetEase(Ease.OutQuad))
+                .Append(transform.DOLocalMove(restLocalPosition, fallDuration).SetEase(Ease.InQuad))
+                .Join(transform.DOScale(
+                    new Vector3(landingScale, 0.84f, 1f),
+                    fallDuration).SetEase(Ease.InQuad))
+                .Append(transform.DOScale(Vector3.one, finalStone ? 0.13f : 0.1f)
+                    .SetEase(Ease.OutBack));
+            motionTween = victorySequence;
+
+            if (finalStone)
+            {
+                victorySequence.InsertCallback(
+                    riseDuration + fallDuration,
+                    () => PlayImpactPulse(
+                        restLocalPosition,
+                        new Color(1f, 0.82f, 0.28f, 0.9f),
+                        new Vector3(1.35f, 1.35f, 1f),
+                        0.2f));
+            }
+
+            motionTween.OnComplete(CompleteMotion);
         }
 
         public void PlayAction(UnitView target)

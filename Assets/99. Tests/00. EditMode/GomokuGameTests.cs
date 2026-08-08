@@ -113,7 +113,39 @@ namespace NAN2026.Gomoku.Tests
 
             Assert.That(game.Winner, Is.EqualTo(StoneColor.Black));
             Assert.That(game.IsGameOver, Is.True);
+            Assert.That(game.WinningUnits, Has.Count.EqualTo(5));
+            for (int index = 0; index < game.WinningUnits.Count; index++)
+            {
+                Assert.That(game.WinningUnits[index].X, Is.EqualTo(startX + index * stepX));
+                Assert.That(game.WinningUnits[index].Y, Is.EqualTo(startY + index * stepY));
+            }
+
             Assert.That(game.TryPlace(10, 10, unit), Is.False);
+        }
+
+        [Test]
+        public void TryPlace_OverlineReturnsFiveWinningUnitsContainingLastMove()
+        {
+            var game = new GomokuGame();
+            int[] blackX = { 0, 1, 2, 4, 5 };
+            int[] whiteX = { 0, 2, 4, 6, 8 };
+
+            for (int index = 0; index < blackX.Length; index++)
+            {
+                Assert.That(game.TryPlace(blackX[index], 7, unit), Is.True);
+                Assert.That(game.TryPlace(whiteX[index], 14, unit), Is.True);
+                game.CompleteCombat();
+            }
+
+            Assert.That(game.TryPlace(3, 7, unit), Is.True);
+
+            Assert.That(game.WinningUnits, Has.Count.EqualTo(5));
+            Assert.That(game.WinningUnits, Does.Contain(game.GetUnit(3, 7)));
+            Assert.That(game.WinningUnits[0], Is.SameAs(game.GetUnit(0, 7)));
+            Assert.That(game.WinningUnits[4], Is.SameAs(game.GetUnit(4, 7)));
+
+            game.StartNewGame(StoneColor.White);
+            Assert.That(game.WinningUnits, Is.Empty);
         }
 
         [Test]

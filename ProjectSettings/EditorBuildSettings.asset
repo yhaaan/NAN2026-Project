@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/00. Scenes/Title.unity
+    guid: fb91e0ba0b8edba4aa42158bed3ff505
+  - enabled: 1
     path: Assets/00. Scenes/GomokuMvp.unity
     guid: c43431181a3402c42b30b05e91b97fe8
   m_configObjects:

@@ -98,10 +98,50 @@ namespace NAN2026.Gomoku.Tests
 
             yield return new WaitForSeconds(0.6f);
             Assert.That(phaseText.text, Is.EqualTo("플레이어 턴"));
+            Assert.That(UnitLabels.GradeTextColor(UnitGrade.Common), Is.EqualTo(Color.black));
             foreach (ShopSlotView shopSlot in shopSlots)
             {
                 Text unitLabel = shopSlot.transform.Find("Name").GetComponent<Text>();
-                Assert.That(unitLabel.text, Does.Contain(" · "));
+                Text statsLabel = shopSlot.transform.Find("Stats").GetComponent<Text>();
+                Image cardBackground = shopSlot.GetComponent<Image>();
+                RectTransform cardRect = shopSlot.transform as RectTransform;
+
+                Assert.That(unitLabel.text, Does.Contain("■"));
+                Assert.That(unitLabel.text, Does.Contain("<size=22>"));
+                Assert.That(unitLabel.text, Does.Contain("<size=12>"));
+                Assert.That(unitLabel.text, Does.Contain("<color=#"));
+                if (unitLabel.text.Contains("일반"))
+                {
+                    Assert.That(unitLabel.text, Does.Contain("<color=#000000>■ 일반</color>"));
+                }
+                Assert.That(unitLabel.text, Does.Not.Contain(" · "));
+                Assert.That(unitLabel.alignment, Is.EqualTo(TextAnchor.UpperLeft));
+                Assert.That(unitLabel.rectTransform.offsetMax.y, Is.EqualTo(-8f).Within(0.01f));
+                Assert.That(statsLabel.alignment, Is.EqualTo(TextAnchor.UpperLeft));
+                Assert.That(statsLabel.fontSize, Is.EqualTo(13));
+                Assert.That(statsLabel.rectTransform.offsetMin.x, Is.EqualTo(22f).Within(0.01f));
+                Text abilityLabel = shopSlot.transform.Find("Ability").GetComponent<Text>();
+                Assert.That(abilityLabel.fontSize, Is.EqualTo(13));
+                Assert.That(abilityLabel.rectTransform.offsetMin.x, Is.EqualTo(22f).Within(0.01f));
+                Text healthStatIcon = shopSlot.transform.Find("HealthStatIcon").GetComponent<Text>();
+                Text powerStatIcon = shopSlot.transform.Find("PowerStatIcon").GetComponent<Text>();
+                Text rangeStatIcon = shopSlot.transform.Find("RangeStatIcon").GetComponent<Text>();
+                Text intervalStatIcon = shopSlot.transform.Find("IntervalStatIcon").GetComponent<Text>();
+                Assert.That(healthStatIcon.text, Is.EqualTo("♥"));
+                Assert.That(powerStatIcon.text, Is.EqualTo("⚔"));
+                Assert.That(rangeStatIcon.text, Is.EqualTo("◎"));
+                Assert.That(intervalStatIcon.text, Is.EqualTo("⏱"));
+                Assert.That(healthStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(22f).Within(0.01f));
+                Assert.That(rangeStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(22f).Within(0.01f));
+                Assert.That(powerStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(108f).Within(0.01f));
+                Assert.That(intervalStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(108f).Within(0.01f));
+                Assert.That(intervalStatIcon.rectTransform.anchoredPosition.y, Is.EqualTo(4f).Within(0.01f));
+                Assert.That(shopSlot.transform.Find("Ability"), Is.Not.Null);
+                Assert.That(cardRect.rect.size, Is.EqualTo(new Vector2(196f, 148f)));
+                Assert.That(cardBackground.color.grayscale, Is.GreaterThan(0.8f));
+                Assert.That(unitLabel.color.grayscale, Is.LessThan(0.2f));
+                Assert.That(statsLabel.color.grayscale, Is.LessThan(0.35f));
+
                 bool hasRole = unitLabel.text.Contains("수호군")
                     || unitLabel.text.Contains("돌격군")
                     || unitLabel.text.Contains("사격군")
@@ -134,6 +174,42 @@ namespace NAN2026.Gomoku.Tests
             RectTransform infoPanelRect = infoPanel.transform as RectTransform;
             hud.enabled = false;
             infoPanel.Refresh(enemyUnit, null, controller.PlayerSide);
+            Text infoName = infoPanel.transform.Find("Name").GetComponent<Text>();
+            Text infoDetails = infoPanel.transform.Find("Details").GetComponent<Text>();
+            Text healthValue = infoPanel.transform.Find("HealthSlider/ValueText").GetComponent<Text>();
+            Image sideAccent = infoPanel.transform.Find("RoleColor").GetComponent<Image>();
+
+            Assert.That(infoName.text, Does.Contain("<color=#"));
+            Assert.That(infoName.text, Does.Contain(enemyUnit.Definition.GradeDisplayName));
+            Assert.That(infoName.text, Does.Contain(enemyUnit.Definition.RoleDisplayName));
+            Assert.That(infoDetails.text, Does.Not.Contain("공격 주기"));
+            Assert.That(infoDetails.text, Does.Not.Contain("적군 ·"));
+            Assert.That(infoDetails.text, Does.Not.Contain("쿨다운"));
+            Assert.That(healthValue.text, Does.Contain("현재 HP"));
+            Slider healthSlider = infoPanel.transform.Find("HealthSlider").GetComponent<Slider>();
+            Slider cooldownSlider = infoPanel.transform.Find("CooldownSlider").GetComponent<Slider>();
+            Text cooldownValue = infoPanel.transform.Find("CooldownSlider/ValueText").GetComponent<Text>();
+            Text healthIcon = infoPanel.transform.Find("HealthSlider/HealthIcon").GetComponent<Text>();
+            Text actionIntervalIcon = infoPanel.transform.Find("CooldownSlider/ActionIntervalIcon").GetComponent<Text>();
+            Assert.That(cooldownSlider.gameObject.activeSelf, Is.True);
+            Assert.That(healthValue.rectTransform.offsetMin.x, Is.EqualTo(40f).Within(0.01f));
+            Assert.That(cooldownValue.rectTransform.offsetMin.x, Is.EqualTo(40f).Within(0.01f));
+            Assert.That(healthIcon.rectTransform.anchoredPosition.x, Is.EqualTo(12f).Within(0.01f));
+            Assert.That(
+                actionIntervalIcon.rectTransform.anchoredPosition.x,
+                Is.EqualTo(healthIcon.rectTransform.anchoredPosition.x).Within(0.01f));
+            Assert.That(actionIntervalIcon.rectTransform.anchoredPosition.y, Is.EqualTo(2f).Within(0.01f));
+            Assert.That(healthIcon.alignment, Is.EqualTo(TextAnchor.MiddleCenter));
+            Assert.That(actionIntervalIcon.alignment, Is.EqualTo(TextAnchor.MiddleCenter));
+            Assert.That(healthSlider.GetComponent<Image>().color.grayscale, Is.GreaterThan(0.7f));
+            Assert.That(cooldownSlider.GetComponent<Image>().color.grayscale, Is.GreaterThan(0.7f));
+            Assert.That(cooldownSlider.value, Is.EqualTo(cooldownSlider.maxValue));
+            Assert.That(cooldownValue.text, Does.Contain("공격 주기"));
+            Assert.That(cooldownValue.text, Does.Not.Contain("쿨타임"));
+            Assert.That(infoPanel.GetComponent<Image>().color.grayscale, Is.GreaterThan(0.8f));
+            Assert.That(infoName.color.grayscale, Is.LessThan(0.2f));
+            Assert.That(infoDetails.color.grayscale, Is.LessThan(0.35f));
+            Assert.That(sideAccent.color.r, Is.GreaterThan(sideAccent.color.b));
             Assert.That(infoPanel.Alpha, Is.EqualTo(0f).Within(0.01f));
             Assert.That(
                 infoPanelRect.anchoredPosition.x,

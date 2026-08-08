@@ -70,6 +70,7 @@ namespace NAN2026.Gomoku
         public float AbilityRatio => abilityRatio;
         public Color RoleColor => presentation != null ? presentation.AccentColor : roleColor;
         public Color GradeColor => UnitLabels.GradeColor(grade);
+        public Color GradeTextColor => UnitLabels.GradeTextColor(grade);
         public UnitActionSO Action => action;
         public UnitPresentationSO Presentation => presentation;
         public bool IsSupport => role == UnitRole.Support;
@@ -78,6 +79,7 @@ namespace NAN2026.Gomoku
             || ability == UnitAbility.SaintProtection;
         public string GradeDisplayName => UnitLabels.GradeName(grade);
         public string RoleDisplayName => UnitLabels.RoleName(role);
+        public string AbilityDisplayName => UnitLabels.AbilityName(ability);
     }
 
     public static class UnitLabels
@@ -103,6 +105,31 @@ namespace NAN2026.Gomoku
                 case UnitRole.Caster: return "술사";
                 default: return "지원군";
             }
+        }
+
+        public static string AbilityName(UnitAbility ability)
+        {
+            switch (ability)
+            {
+                case UnitAbility.AreaHeal: return "범위 회복";
+                case UnitAbility.DeathExplosion: return "죽음의 폭발";
+                case UnitAbility.IsolatedAssault: return "고립 강습";
+                case UnitAbility.DamageReduction: return "철갑";
+                case UnitAbility.LowestHealthHeal: return "위기 치유";
+                case UnitAbility.PiercingShot: return "관통 사격";
+                case UnitAbility.WeakenAura: return "약화의 오라";
+                case UnitAbility.HasteAura: return "가속의 오라";
+                case UnitAbility.Meteor: return "메테오";
+                case UnitAbility.DamageRedirect: return "피해 전가";
+                case UnitAbility.PhoenixRebirth: return "불사조 부활";
+                case UnitAbility.ChainLightning: return "연쇄 번개";
+                case UnitAbility.SaintProtection: return "성녀의 가호";
+                default: return string.Empty;
+            }
+        }
+        public static Color GradeTextColor(UnitGrade grade)
+        {
+            return grade == UnitGrade.Common ? Color.black : GradeColor(grade);
         }
 
         public static Color GradeColor(UnitGrade grade)

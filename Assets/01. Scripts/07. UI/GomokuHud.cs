@@ -150,7 +150,7 @@ namespace NAN2026.Gomoku
                 shopPanel.SetActive(true);
             }
 
-            goldText.text = $"Gold: {gold}";
+            goldText.text = $"Gold  {gold}";
             rerollButton.interactable = interactable && gold >= ShopState.RerollCost;
 
             for (int index = 0; index < shopSlots.Length; index++)
@@ -171,9 +171,7 @@ namespace NAN2026.Gomoku
 
             boardView.SetPlacementPreview(selectedDefinition);
 
-            selectedText.text = selectedDefinition != null
-                ? $"선택: {selectedDefinition.DisplayName}"
-                : (interactable ? "유닛을 선택하세요" : "COM 배치 대기 중");
+            selectedText.text = string.Empty;
 
             if (shouldAnimate)
             {

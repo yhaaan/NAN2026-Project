@@ -27,6 +27,8 @@ namespace NAN2026.Gomoku
         private Vector2 shownPosition;
         private Tween positionTween;
         private Tween fadeTween;
+        private Text healthIconText;
+        private Text cooldownIconText;
         private bool targetVisible;
 
         public bool IsVisible => panelGroup != null && panelGroup.alpha > 0.5f;
@@ -41,6 +43,7 @@ namespace NAN2026.Gomoku
         {
             panelRect = transform as RectTransform;
             shownPosition = panelRect != null ? panelRect.anchoredPosition : Vector2.zero;
+            ConfigureSliderLabels();
             SetHiddenImmediately();
         }
 
@@ -59,28 +62,47 @@ namespace NAN2026.Gomoku
 
             Show();
             UnitDefinitionSO definition = unit.Definition;
-            roleColorImage.color = definition.GradeColor;
-            nameText.text = $"{definition.DisplayName}  [{definition.GradeDisplayName} · {definition.RoleDisplayName}]";
+            bool isAlly = unit.Side == playerSide;
+            roleColorImage.color = isAlly
+                ? new Color(0.25f, 0.62f, 1f)
+                : new Color(1f, 0.32f, 0.36f);
 
-            string side = unit.Side == playerSide ? "아군" : "적군";
+            string gradeColor = ColorUtility.ToHtmlStringRGB(definition.GradeTextColor);
+            nameText.alignment = TextAnchor.UpperLeft;
+            nameText.color = new Color(0.09f, 0.11f, 0.15f);
+            nameText.text =
+                $"<size=24><b>{definition.DisplayName}</b></size>\n"
+                + $"<size=13><color=#{gradeColor}>■ {definition.GradeDisplayName}</color>   "
+                + $"<color=#4B5568>■ {definition.RoleDisplayName}</color></size>";
+
             string power = definition.IsSupport
                 ? definition.IsHealer ? "회복력" : "지원력"
                 : "공격력";
-            string action = definition.IsSupport ? "지원 행동" : definition.Action?.DisplayName ?? "고유 행동";
+            string abilityName = definition.Ability == UnitAbility.None
+                ? definition.Action?.DisplayName ?? "기본 행동"
+                : definition.AbilityDisplayName;
+            string abilityDescription = definition.Ability == UnitAbility.None
+                ? string.Empty
+                : $"\n<color=#424B5A>{definition.Description}</color>";
+
+            detailsText.alignment = TextAnchor.UpperLeft;
+            detailsText.color = new Color(0.18f, 0.21f, 0.27f);
             detailsText.text =
-                $"{side} · {definition.RoleDisplayName}\n\n"
-                + $"{definition.Description}\n\n"
-                + $"{power}  {definition.Power}    사거리  {definition.Range}\n"
-                + $"행동  {action}";
+                $"<size=17><b>{abilityName}</b></size>{abilityDescription}\n\n"
+                + $"<color=#966600>⚔</color> {power}  <b>{definition.Power}</b>       "
+                + $"<color=#2867A8>◎</color> 사거리  <b>{definition.Range}</b>";
 
             healthSlider.minValue = 0f;
             healthSlider.maxValue = definition.MaxHealth;
             healthSlider.SetValueWithoutNotify(unit.CurrentHealth);
-            healthValueText.text = $"체력  {unit.CurrentHealth}/{definition.MaxHealth}";
+            healthValueText.alignment = TextAnchor.MiddleLeft;
+            healthValueText.color = new Color(0.12f, 0.14f, 0.18f);
+            healthValueText.text =
+                $"현재 HP  <b>{unit.CurrentHealth} / {definition.MaxHealth}</b>";
 
-            float interval = combat != null
-                ? combat.GetActionInterval(unit)
-                : Mathf.Max(0.1f, definition.ActionInterval);
+            float interval = GetActionInterval(unit, combat);
+            cooldownValueText.alignment = TextAnchor.MiddleLeft;
+            cooldownValueText.color = new Color(0.12f, 0.14f, 0.18f);
             cooldownSlider.minValue = 0f;
             cooldownSlider.maxValue = interval;
 
@@ -88,13 +110,87 @@ namespace NAN2026.Gomoku
             {
                 float elapsedCooldown = Mathf.Clamp(interval - remainingSeconds, 0f, interval);
                 cooldownSlider.SetValueWithoutNotify(elapsedCooldown);
-                cooldownValueText.text = $"쿨다운  {elapsedCooldown:0.0}초/{interval:0.0}초";
+                cooldownValueText.text =
+                    $"공격 주기  <b>{elapsedCooldown:0.0}초 / {interval:0.0}초</b>";
             }
             else
             {
                 cooldownSlider.SetValueWithoutNotify(interval);
-                cooldownValueText.text = $"쿨다운  {interval:0.0}초/{interval:0.0}초";
+                cooldownValueText.text =
+                    $"공격 주기  <b>{interval:0.0}초 / {interval:0.0}초</b>";
             }
+        }
+
+        private void ConfigureSliderLabels()
+        {
+            healthIconText = ConfigureSliderLabel(
+                healthValueText,
+                "HealthIcon",
+                "♥",
+                new Color(0.72f, 0.2f, 0.28f));
+            cooldownIconText = ConfigureSliderLabel(
+                cooldownValueText,
+                "ActionIntervalIcon",
+                "⏱",
+                new Color(0.15f, 0.44f, 0.36f));
+            cooldownIconText.rectTransform.anchoredPosition = new Vector2(12f, 2f);
+        }
+
+        private static Text ConfigureSliderLabel(
+            Text valueText,
+            string iconName,
+            string glyph,
+            Color iconColor)
+        {
+            RectTransform valueRect = valueText.rectTransform;
+            Vector2 offsetMin = valueRect.offsetMin;
+            Vector2 offsetMax = valueRect.offsetMax;
+            offsetMin.x = 40f;
+            offsetMax.x = -10f;
+            valueRect.offsetMin = offsetMin;
+            valueRect.offsetMax = offsetMax;
+            valueText.alignment = TextAnchor.MiddleLeft;
+
+            Transform existing = valueText.transform.parent.Find(iconName);
+            Text iconText;
+            if (existing != null)
+            {
+                iconText = existing.GetComponent<Text>();
+            }
+            else
+            {
+                var iconObject = new GameObject(
+                    iconName,
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(Text));
+                iconObject.transform.SetParent(valueText.transform.parent, false);
+                iconText = iconObject.GetComponent<Text>();
+            }
+
+            RectTransform iconRect = iconText.rectTransform;
+            iconRect.anchorMin = new Vector2(0f, 0f);
+            iconRect.anchorMax = new Vector2(0f, 1f);
+            iconRect.pivot = new Vector2(0f, 0.5f);
+            iconRect.anchoredPosition = new Vector2(12f, 0f);
+            iconRect.sizeDelta = new Vector2(20f, 0f);
+
+            iconText.font = valueText.font;
+            iconText.fontSize = valueText.fontSize;
+            iconText.fontStyle = FontStyle.Bold;
+            iconText.alignment = TextAnchor.MiddleCenter;
+            iconText.color = iconColor;
+            iconText.raycastTarget = false;
+            iconText.text = glyph;
+            iconText.transform.SetAsLastSibling();
+            return iconText;
+        }
+
+        private static float GetActionInterval(BoardUnit unit, CombatResolver combat)
+        {
+            return combat != null
+                ? combat.GetActionInterval(unit)
+                : Mathf.Max(0.1f, unit.Definition.ActionInterval);
         }
 
         public void Hide()

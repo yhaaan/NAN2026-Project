@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,6 +27,11 @@ namespace NAN2026.Gomoku
         [SerializeField] private Button continueButton;
         [SerializeField] private Text continueButtonText;
 
+        [Header("Shop Transition")]
+        [SerializeField, Min(0f)] private float shopShowDuration = 0.38f;
+        [SerializeField, Min(0f)] private float shopHideDuration = 0.32f;
+        [SerializeField, Min(0f)] private float shopHiddenPadding = 18f;
+
         private Action<int> onShopSelection;
         private Action<int, int> onBoardClick;
         private Action<int> onCombatSpeedChanged;
@@ -33,9 +39,32 @@ namespace NAN2026.Gomoku
         private StoneColor playerSide = StoneColor.White;
         private UnitInfoPanelView unitInfoPanel;
         private CombatResolver combat;
+        private RectTransform shopRect;
+        private CanvasGroup shopCanvasGroup;
+        private Vector2 shopShownPosition;
+        private Vector2 shopHiddenPosition;
+        private Tween shopTransition;
+        private Action pendingHideCompletion;
+        private bool shopPresentationInitialized;
+        private bool shopVisible;
+        private bool shopShowWaitingForCamera;
+
+        public event Action<bool, float, Action> CameraFramingRequested;
+
+        public RectTransform BoardRect => boardView != null ? boardView.rectTransform : null;
+        public RectTransform ShopRect => shopRect != null
+            ? shopRect
+            : shopPanel != null ? shopPanel.transform as RectTransform : null;
+        public RectTransform TurnStatusRect => turnStatusView != null
+            ? turnStatusView.transform as RectTransform
+            : null;
+        public float ShopShowDuration => shopShowDuration;
+        public float ShopHideDuration => shopHideDuration;
 
         private void Awake()
         {
+            InitializeShopPresentation();
+
             if (unitInfoPanelPrefab != null)
             {
                 unitInfoPanel = Instantiate(unitInfoPanelPrefab, transform, false);
@@ -51,6 +80,12 @@ namespace NAN2026.Gomoku
                 ? boardView.PointerState.HoveredUnit
                 : null;
             unitInfoPanel?.Refresh(hoveredUnit, combat, playerSide);
+        }
+
+        private void OnDestroy()
+        {
+            shopTransition?.Kill();
+            shopTransition = null;
         }
 
         public void Initialize(
@@ -107,7 +142,14 @@ namespace NAN2026.Gomoku
             int selectedIndex,
             bool interactable)
         {
-            shopPanel.SetActive(true);
+            EnsureShopPresentation();
+            bool shouldAnimate = !shopVisible;
+            shopVisible = true;
+            if (!shouldAnimate && !shopShowWaitingForCamera)
+            {
+                shopPanel.SetActive(true);
+            }
+
             goldText.text = $"Gold: {gold}";
             rerollButton.interactable = interactable && gold >= ShopState.RerollCost;
 
@@ -132,13 +174,60 @@ namespace NAN2026.Gomoku
             selectedText.text = selectedDefinition != null
                 ? $"선택: {selectedDefinition.DisplayName}"
                 : (interactable ? "유닛을 선택하세요" : "COM 배치 대기 중");
+
+            if (shouldAnimate)
+            {
+                pendingHideCompletion = null;
+                shopShowWaitingForCamera = true;
+                RequestCameraFraming(false, shopShowDuration, BeginShopShowAfterCamera);
+            }
+        }
+
+        public void ClearShopSelection()
+        {
+            placementCursorView.SetSelection(null, playerSide);
+            boardView.SetPlacementPreview(null);
+
+            foreach (ShopSlotView shopSlot in shopSlots)
+            {
+                if (shopSlot != null && shopSlot.gameObject.activeSelf)
+                {
+                    shopSlot.SetSelected(false);
+                }
+            }
+
+            selectedText.text = "배치 완료";
         }
 
         public void HideShop()
         {
-            shopPanel.SetActive(false);
+            HideShop(null);
+        }
+
+        public void HideShop(Action onHidden)
+        {
             placementCursorView.SetSelection(null, playerSide);
             boardView.SetPlacementPreview(null);
+
+            EnsureShopPresentation();
+            if (!shopVisible)
+            {
+                if (shopTransition != null)
+                {
+                    pendingHideCompletion += onHidden;
+                }
+                else
+                {
+                    onHidden?.Invoke();
+                }
+
+                return;
+            }
+
+            shopVisible = false;
+            shopShowWaitingForCamera = false;
+            pendingHideCompletion += onHidden;
+            StartShopTransition(false, shopHideDuration);
         }
 
         public void ShowCombatTimer(float duration)
@@ -229,6 +318,133 @@ namespace NAN2026.Gomoku
         private void HandleShopSelection(int index)
         {
             onShopSelection?.Invoke(index);
+        }
+
+        private void InitializeShopPresentation()
+        {
+            EnsureShopPresentation();
+            if (!shopPresentationInitialized)
+            {
+                return;
+            }
+
+            shopVisible = false;
+            shopShowWaitingForCamera = false;
+            shopRect.anchoredPosition = shopHiddenPosition;
+            SetShopInteraction(false);
+            shopPanel.SetActive(false);
+        }
+
+        private void EnsureShopPresentation()
+        {
+            if (shopPresentationInitialized || shopPanel == null)
+            {
+                return;
+            }
+
+            shopRect = shopPanel.transform as RectTransform;
+            if (shopRect == null)
+            {
+                Debug.LogError("ShopPanel requires a RectTransform.", this);
+                return;
+            }
+
+            shopCanvasGroup = shopPanel.GetComponent<CanvasGroup>();
+            if (shopCanvasGroup == null && Application.isPlaying)
+            {
+                shopCanvasGroup = shopPanel.AddComponent<CanvasGroup>();
+            }
+
+            shopShownPosition = shopRect.anchoredPosition;
+            float travelDistance = shopRect.rect.height + shopHiddenPadding;
+            shopHiddenPosition = shopShownPosition + Vector2.down * travelDistance;
+            shopVisible = shopPanel.activeSelf;
+            shopPresentationInitialized = true;
+        }
+
+        private void StartShopTransition(bool visible, float duration)
+        {
+            if (shopTransition != null)
+            {
+                shopTransition.Kill();
+                shopTransition = null;
+            }
+
+            SetShopInteraction(false);
+
+            if (!Application.isPlaying
+                || !isActiveAndEnabled
+                || duration <= Mathf.Epsilon)
+            {
+                CompleteShopTransition(visible);
+                return;
+            }
+
+            Ease ease = visible ? Ease.OutQuart : Ease.InQuart;
+            Vector2 targetPosition = visible ? shopShownPosition : shopHiddenPosition;
+            shopTransition = DOTween
+                .To(
+                    () => shopRect.anchoredPosition,
+                    value => shopRect.anchoredPosition = value,
+                    targetPosition,
+                    duration)
+                .SetEase(ease)
+                .SetUpdate(true)
+                .SetTarget(this)
+                .OnComplete(() => CompleteShopTransition(visible));
+        }
+
+        private void CompleteShopTransition(bool visible)
+        {
+            shopTransition = null;
+            shopRect.anchoredPosition = visible ? shopShownPosition : shopHiddenPosition;
+            SetShopInteraction(visible);
+
+            if (!visible)
+            {
+                shopPanel.SetActive(false);
+                Action completion = pendingHideCompletion;
+                pendingHideCompletion = null;
+                RequestCameraFraming(true, shopHideDuration, completion);
+            }
+        }
+
+        private void BeginShopShowAfterCamera()
+        {
+            shopShowWaitingForCamera = false;
+            if (!shopVisible)
+            {
+                return;
+            }
+
+            shopPanel.SetActive(true);
+            StartShopTransition(true, shopShowDuration);
+        }
+
+        private void RequestCameraFraming(
+            bool expanded,
+            float duration,
+            Action onCompleted)
+        {
+            Action<bool, float, Action> request = CameraFramingRequested;
+            if (request == null)
+            {
+                onCompleted?.Invoke();
+                return;
+            }
+
+            request.Invoke(expanded, duration, onCompleted);
+        }
+
+        private void SetShopInteraction(bool interactable)
+        {
+            if (shopCanvasGroup == null)
+            {
+                return;
+            }
+
+            shopCanvasGroup.interactable = interactable;
+            shopCanvasGroup.blocksRaycasts = interactable;
         }
     }
 }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using NAN2026.Gomoku;
 
 
 namespace TMPro.Examples
@@ -49,9 +50,33 @@ namespace TMPro.Examples
         private const string event_SmoothingValue = "Slider - Smoothing Value";
         private const string event_FollowDistance = "Slider - Camera Zoom";
 
+        [Header("Gomoku Combat Framing")]
+        [SerializeField] private bool useGomokuUiFraming;
+        [SerializeField] private GomokuHud gomokuHud;
+        [SerializeField, Min(0f)] private float combatHorizontalPadding = 42f;
+        [SerializeField, Min(0f)] private float combatBottomPadding = 26f;
+        [SerializeField, Min(0f)] private float turnUiPadding = 22f;
+
+        private GomokuHud subscribedHud;
+        private RectTransform boardRect;
+        private RectTransform turnStatusRect;
+        private Vector2 placementBoardPosition;
+        private Vector2 placementBoardSize;
+        private Coroutine framingRoutine;
+        private bool placementFrameCached;
+
 
         void Awake()
         {
+            cameraTransform = transform;
+            previousSmoothing = MovementSmoothing;
+
+            if (useGomokuUiFraming)
+            {
+                InitializeGomokuFraming();
+                return;
+            }
+
             if (QualitySettings.vSyncCount > 0)
                 Application.targetFrameRate = 60;
             else
@@ -59,15 +84,36 @@ namespace TMPro.Examples
 
             if (Application.platform == RuntimePlatform.IPhonePlayer || Application.platform == RuntimePlatform.Android)
                 Input.simulateMouseWithTouches = false;
-
-            cameraTransform = transform;
-            previousSmoothing = MovementSmoothing;
         }
 
+        void OnEnable()
+        {
+            if (useGomokuUiFraming)
+            {
+                InitializeGomokuFraming();
+            }
+        }
+
+        void OnDisable()
+        {
+            if (framingRoutine != null)
+            {
+                StopCoroutine(framingRoutine);
+                framingRoutine = null;
+            }
+
+            UnsubscribeFromHud();
+        }
 
         // Use this for initialization
         void Start()
         {
+            if (useGomokuUiFraming)
+            {
+                InitializeGomokuFraming();
+                return;
+            }
+
             if (CameraTarget == null)
             {
                 // If we don't have a target (assigned by the player, create a dummy in the center of the scene).
@@ -79,6 +125,11 @@ namespace TMPro.Examples
         // Update is called once per frame
         void LateUpdate()
         {
+            if (useGomokuUiFraming)
+            {
+                return;
+            }
+
             GetPlayerInput();
 
 
@@ -122,6 +173,160 @@ namespace TMPro.Examples
         }
 
 
+
+        private void InitializeGomokuFraming()
+        {
+            if (gomokuHud == null)
+            {
+                gomokuHud = FindFirstObjectByType<GomokuHud>();
+            }
+
+            if (gomokuHud == null)
+            {
+                Debug.LogWarning(
+                    "Gomoku camera framing requires a GomokuHud in the scene.",
+                    this);
+                return;
+            }
+
+            if (subscribedHud != gomokuHud)
+            {
+                UnsubscribeFromHud();
+                subscribedHud = gomokuHud;
+                subscribedHud.CameraFramingRequested += HandleCameraFramingRequested;
+            }
+
+            boardRect = gomokuHud.BoardRect;
+            turnStatusRect = gomokuHud.TurnStatusRect;
+            if (!placementFrameCached && boardRect != null)
+            {
+                placementBoardPosition = boardRect.anchoredPosition;
+                placementBoardSize = boardRect.sizeDelta;
+                placementFrameCached = true;
+            }
+        }
+
+        private void UnsubscribeFromHud()
+        {
+            if (subscribedHud == null)
+            {
+                return;
+            }
+
+            subscribedHud.CameraFramingRequested -= HandleCameraFramingRequested;
+            subscribedHud = null;
+        }
+
+        private void HandleCameraFramingRequested(
+            bool expanded,
+            float duration,
+            System.Action onCompleted)
+        {
+            InitializeGomokuFraming();
+            if (!placementFrameCached || boardRect == null)
+            {
+                onCompleted?.Invoke();
+                return;
+            }
+
+            if (framingRoutine != null)
+            {
+                StopCoroutine(framingRoutine);
+            }
+
+            Vector2 targetPosition = placementBoardPosition;
+            Vector2 targetSize = placementBoardSize;
+            if (expanded)
+            {
+                CalculateCombatFrame(out targetPosition, out targetSize);
+            }
+
+            bool alreadyAtTarget = (boardRect.anchoredPosition - targetPosition).sqrMagnitude
+                    <= 0.0001f
+                && (boardRect.sizeDelta - targetSize).sqrMagnitude <= 0.0001f;
+            if (!isActiveAndEnabled || duration <= Mathf.Epsilon || alreadyAtTarget)
+            {
+                boardRect.anchoredPosition = targetPosition;
+                boardRect.sizeDelta = targetSize;
+                framingRoutine = null;
+                onCompleted?.Invoke();
+                return;
+            }
+
+            framingRoutine = StartCoroutine(AnimateFrame(
+                targetPosition,
+                targetSize,
+                duration,
+                onCompleted));
+        }
+
+        private IEnumerator AnimateFrame(
+            Vector2 targetPosition,
+            Vector2 targetSize,
+            float duration,
+            System.Action onCompleted)
+        {
+            Vector2 startPosition = boardRect.anchoredPosition;
+            Vector2 startSize = boardRect.sizeDelta;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(elapsed / duration);
+                float eased = progress < 0.5f
+                    ? 4f * progress * progress * progress
+                    : 1f - Mathf.Pow(-2f * progress + 2f, 3f) * 0.5f;
+                boardRect.anchoredPosition = Vector2.LerpUnclamped(
+                    startPosition,
+                    targetPosition,
+                    eased);
+                boardRect.sizeDelta = Vector2.LerpUnclamped(
+                    startSize,
+                    targetSize,
+                    eased);
+                yield return null;
+            }
+
+            boardRect.anchoredPosition = targetPosition;
+            boardRect.sizeDelta = targetSize;
+            framingRoutine = null;
+            onCompleted?.Invoke();
+        }
+
+        private void CalculateCombatFrame(
+            out Vector2 targetPosition,
+            out Vector2 targetSize)
+        {
+            targetPosition = placementBoardPosition;
+            targetSize = placementBoardSize;
+
+            RectTransform frameParent = boardRect.parent as RectTransform;
+            if (frameParent == null || turnStatusRect == null)
+            {
+                return;
+            }
+
+            Canvas.ForceUpdateCanvases();
+            Rect parentRect = frameParent.rect;
+            Bounds turnBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(
+                frameParent,
+                turnStatusRect);
+            float availableBottom = parentRect.yMin + combatBottomPadding;
+            float availableTop = Mathf.Min(
+                parentRect.yMax - turnUiPadding,
+                turnBounds.min.y - turnUiPadding);
+            float availableWidth = parentRect.width - combatHorizontalPadding * 2f;
+            float availableHeight = availableTop - availableBottom;
+            float squareSize = Mathf.Min(availableWidth, availableHeight);
+            if (squareSize <= Mathf.Epsilon)
+            {
+                return;
+            }
+
+            targetPosition.y = (availableBottom + availableTop) * 0.5f;
+            targetSize = Vector2.one * squareSize;
+        }
 
         void GetPlayerInput()
         {

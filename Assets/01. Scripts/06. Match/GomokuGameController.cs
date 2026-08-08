@@ -21,6 +21,8 @@ namespace NAN2026.Gomoku
         [SerializeField] private AudioClip placementSfx;
         [SerializeField, Min(0f)] private float comPlacementDelay = 0.45f;
         [SerializeField, Min(1f)] private float combatDuration = 10f;
+        [SerializeField, Min(0f)] private float shopHideDelayAfterPlacement = 0.2f;
+        [SerializeField, Min(0f)] private float combatEndDelay = 0.2f;
 
         private readonly GomokuGame game = new GomokuGame();
         private ShopState playerShop;
@@ -37,9 +39,14 @@ namespace NAN2026.Gomoku
         private bool matchFinished;
         private bool lastGameWasDraw;
         private int combatSpeed = MinCombatSpeed;
+        private bool combatTransitionPending;
         private Coroutine victoryRoutine;
+        private Coroutine shopHideDelayRoutine;
+        private Coroutine combatEndDelayRoutine;
 
         public StoneColor PlayerSide => playerSide;
+        public float ShopHideDelayAfterPlacement => shopHideDelayAfterPlacement;
+        public float CombatEndDelay => combatEndDelay;
 
         private void Start()
         {
@@ -87,23 +94,16 @@ namespace NAN2026.Gomoku
                 }
             }
 
-            if (game.Phase == GamePhase.Combat && !waitingForContinue)
+            if (game.Phase == GamePhase.Combat
+                && !waitingForContinue
+                && !combatTransitionPending)
             {
                 combat.Tick(Time.deltaTime);
                 hud.SetCombatElapsed(combat.Elapsed);
 
                 if (combat.IsFinished)
                 {
-                    Time.timeScale = 1f;
-                    game.CompleteCombat();
-                    if (game.IsGameOver)
-                    {
-                        FinishGame();
-                    }
-                    else
-                    {
-                        PreparePlacementTurn();
-                    }
+                    BeginCombatEndDelay();
                 }
             }
         }
@@ -111,6 +111,8 @@ namespace NAN2026.Gomoku
         private void OnDestroy()
         {
             Time.timeScale = 1f;
+            CancelShopHideDelay();
+            CancelCombatEndDelay();
 
             if (victoryRoutine != null)
             {
@@ -150,6 +152,9 @@ namespace NAN2026.Gomoku
             comShop.ResetForGame();
             selectedOffer = -1;
             waitingForContinue = false;
+            CancelShopHideDelay();
+            CancelCombatEndDelay();
+            combatTransitionPending = false;
             hud.BindGame(game, playerSide);
             hud.HideResult();
             PreparePlacementTurn();
@@ -247,6 +252,7 @@ namespace NAN2026.Gomoku
         private void AfterPlacement()
         {
             selectedOffer = -1;
+            hud.ClearShopSelection();
             hud.RefreshBoard();
             hud.PlayPlacementImpact();
             cameraEffects?.PlayPlacementShake();
@@ -258,8 +264,8 @@ namespace NAN2026.Gomoku
             }
             else if (game.Phase == GamePhase.Combat)
             {
-                hud.HideShop();
-                combat.Begin(game);
+                combatTransitionPending = true;
+                HideShopAfterPlacement(BeginCombat);
                 hud.ShowCombatTimer(combat.Duration);
                 Time.timeScale = combatSpeed;
                 RefreshTurnStatus();
@@ -275,10 +281,99 @@ namespace NAN2026.Gomoku
             hud.PlayCombatAction(actionEvent);
         }
 
+        private void BeginCombat()
+        {
+            if (!combatTransitionPending || game.Phase != GamePhase.Combat)
+            {
+                return;
+            }
+
+            combat.Begin(game);
+            combatTransitionPending = false;
+        }
+
+        private void HideShopAfterPlacement(Action onHidden = null)
+        {
+            CancelShopHideDelay();
+            if (shopHideDelayAfterPlacement <= Mathf.Epsilon)
+            {
+                hud.HideShop(onHidden);
+                return;
+            }
+
+            shopHideDelayRoutine = StartCoroutine(
+                DelayShopHideAfterPlacement(onHidden));
+        }
+
+        private IEnumerator DelayShopHideAfterPlacement(Action onHidden)
+        {
+            yield return new WaitForSecondsRealtime(shopHideDelayAfterPlacement);
+            shopHideDelayRoutine = null;
+            hud.HideShop(onHidden);
+        }
+
+        private void CancelShopHideDelay()
+        {
+            if (shopHideDelayRoutine == null)
+            {
+                return;
+            }
+
+            StopCoroutine(shopHideDelayRoutine);
+            shopHideDelayRoutine = null;
+        }
+
+        private void BeginCombatEndDelay()
+        {
+            Time.timeScale = 1f;
+            game.CompleteCombat();
+            CancelCombatEndDelay();
+            if (combatEndDelay <= Mathf.Epsilon)
+            {
+                CompleteCombatEndTransition();
+                return;
+            }
+
+            combatEndDelayRoutine = StartCoroutine(DelayCombatEnd());
+        }
+
+        private IEnumerator DelayCombatEnd()
+        {
+            yield return new WaitForSecondsRealtime(combatEndDelay);
+            combatEndDelayRoutine = null;
+            CompleteCombatEndTransition();
+        }
+
+        private void CompleteCombatEndTransition()
+        {
+            if (game.IsGameOver)
+            {
+                FinishGame();
+            }
+            else
+            {
+                PreparePlacementTurn();
+            }
+        }
+
+        private void CancelCombatEndDelay()
+        {
+            if (combatEndDelayRoutine == null)
+            {
+                return;
+            }
+
+            StopCoroutine(combatEndDelayRoutine);
+            combatEndDelayRoutine = null;
+        }
+
         private void FinishGame()
         {
             Time.timeScale = 1f;
             comTurnPending = false;
+            CancelShopHideDelay();
+            CancelCombatEndDelay();
+            combatTransitionPending = false;
             waitingForContinue = true;
             lastGameWasDraw = game.Winner == StoneColor.None;
             bool playerWon = game.Winner == playerSide;
@@ -305,7 +400,7 @@ namespace NAN2026.Gomoku
                 ? "Replay Game"
                 : matchFinished ? "Restart Match" : "Next Game";
 
-            hud.HideShop();
+            HideShopAfterPlacement();
             hud.HideCombatTimer();
 
             if (lastGameWasDraw)

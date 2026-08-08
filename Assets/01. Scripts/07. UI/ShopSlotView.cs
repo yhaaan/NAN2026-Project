@@ -14,6 +14,8 @@ namespace NAN2026.Gomoku
         private int slotIndex;
         private Action<int> onSelected;
 
+        public bool IsSelected { get; private set; }
+
         public void Initialize(int index, Action<int> selectionHandler)
         {
             slotIndex = index;
@@ -32,6 +34,12 @@ namespace NAN2026.Gomoku
             roleColor.color = definition.RoleColor;
             button.interactable = interactable;
 
+            SetSelected(selected);
+        }
+
+        public void SetSelected(bool selected)
+        {
+            IsSelected = selected;
             ColorBlock colors = button.colors;
             colors.normalColor = selected ? new Color(1f, 0.82f, 0.35f) : Color.white;
             colors.selectedColor = colors.normalColor;

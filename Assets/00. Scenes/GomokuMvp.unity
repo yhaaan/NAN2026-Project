@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 78561403}
   - component: {fileID: 78561402}
   - component: {fileID: 78561404}
+  - component: {fileID: 78561405}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -307,6 +308,37 @@ MonoBehaviour:
     FrequencyGain: 1
     Duration: 0
     m_NoiseOffsets: {x: 0, y: 0, z: 0}
+--- !u!114 &78561405
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 78561398}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d687537154440a3913a9a3c7977978c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TMPro.Examples.CameraController
+  CameraTarget: {fileID: 0}
+  FollowDistance: 30
+  MaxFollowDistance: 100
+  MinFollowDistance: 2
+  ElevationAngle: 30
+  MaxElevationAngle: 85
+  MinElevationAngle: 0
+  OrbitalAngle: 0
+  CameraMode: 0
+  MovementSmoothing: 1
+  RotationSmoothing: 0
+  MovementSmoothingValue: 25
+  RotationSmoothingValue: 5
+  MoveSensitivity: 2
+  useGomokuUiFraming: 1
+  gomokuHud: {fileID: 347977219}
+  combatHorizontalPadding: 42
+  combatBottomPadding: 26
+  turnUiPadding: 22
 --- !u!1 &210197698 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 302196531890197888, guid: 770d6bcc2775a564084e8ce73acf3519, type: 3}
@@ -352,6 +384,8 @@ MonoBehaviour:
   placementSfx: {fileID: 8300000, guid: 5525eb23f5cdd8f429abe6da675cd6b3, type: 3}
   comPlacementDelay: 0.45
   combatDuration: 10
+  shopHideDelayAfterPlacement: 0.2
+  combatEndDelay: 0.2
 --- !u!4 &251248543
 Transform:
   m_ObjectHideFlags: 0
@@ -418,6 +452,9 @@ MonoBehaviour:
   resultScoreText: {fileID: 1045759048}
   continueButton: {fileID: 1045759047}
   continueButtonText: {fileID: 1045759045}
+  shopShowDuration: 0.38
+  shopHideDuration: 0.32
+  shopHiddenPadding: 18
 --- !u!224 &347977220
 RectTransform:
   m_ObjectHideFlags: 0

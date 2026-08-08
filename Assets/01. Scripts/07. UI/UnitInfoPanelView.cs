@@ -1,3 +1,4 @@
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,11 +17,36 @@ namespace NAN2026.Gomoku
         [SerializeField] private Slider cooldownSlider;
         [SerializeField] private Text cooldownValueText;
 
+        [Header("Transition")]
+        [SerializeField, Min(0f)] private float showOffset = 40f;
+        [SerializeField, Min(0f)] private float showDuration = 0.2f;
+        [SerializeField, Min(0f)] private float hideOffset = 25f;
+        [SerializeField, Min(0f)] private float hideDuration = 0.14f;
+
+        private RectTransform panelRect;
+        private Vector2 shownPosition;
+        private Tween positionTween;
+        private Tween fadeTween;
+        private bool targetVisible;
+
         public bool IsVisible => panelGroup != null && panelGroup.alpha > 0.5f;
+        public float Alpha => panelGroup != null ? panelGroup.alpha : 0f;
+        public Vector2 ShownPosition => shownPosition;
+        public float ShowOffset => showOffset;
+        public float ShowDuration => showDuration;
+        public float HideOffset => hideOffset;
+        public float HideDuration => hideDuration;
 
         private void Awake()
         {
-            Hide();
+            panelRect = transform as RectTransform;
+            shownPosition = panelRect != null ? panelRect.anchoredPosition : Vector2.zero;
+            SetHiddenImmediately();
+        }
+
+        private void OnDestroy()
+        {
+            KillTransitions();
         }
 
         public void Refresh(BoardUnit unit, CombatResolver combat, StoneColor playerSide)
@@ -31,7 +57,7 @@ namespace NAN2026.Gomoku
                 return;
             }
 
-            panelGroup.alpha = 1f;
+            Show();
             UnitDefinitionSO definition = unit.Definition;
 
             roleColorImage.color = definition.RoleColor;
@@ -69,12 +95,146 @@ namespace NAN2026.Gomoku
 
         public void Hide()
         {
+            if (!targetVisible || panelGroup == null)
+            {
+                return;
+            }
+
+            targetVisible = false;
+            KillTransitions();
+            panelGroup.interactable = false;
+            panelGroup.blocksRaycasts = false;
+
+            Vector2 hiddenPosition = shownPosition + Vector2.right * hideOffset;
+            if (!Application.isPlaying
+                || !isActiveAndEnabled
+                || hideDuration <= Mathf.Epsilon)
+            {
+                panelRect.anchoredPosition = hiddenPosition;
+                panelGroup.alpha = 0f;
+                return;
+            }
+
+            positionTween = DOTween
+                .To(
+                    () => panelRect.anchoredPosition,
+                    value => panelRect.anchoredPosition = value,
+                    hiddenPosition,
+                    hideDuration)
+                .SetEase(Ease.InCubic)
+                .SetUpdate(true)
+                .SetTarget(this)
+                .OnComplete(() =>
+                {
+                    positionTween = null;
+                    if (!targetVisible)
+                    {
+                        panelRect.anchoredPosition = hiddenPosition;
+                    }
+                });
+            fadeTween = DOTween
+                .To(
+                    () => panelGroup.alpha,
+                    value => panelGroup.alpha = value,
+                    0f,
+                    hideDuration)
+                .SetEase(Ease.InQuad)
+                .SetUpdate(true)
+                .SetTarget(this)
+                .OnComplete(() =>
+                {
+                    fadeTween = null;
+                    if (!targetVisible)
+                    {
+                        panelGroup.alpha = 0f;
+                    }
+                });
+        }
+
+        private void Show()
+        {
+            if (targetVisible || panelGroup == null || panelRect == null)
+            {
+                return;
+            }
+
+            targetVisible = true;
+            KillTransitions();
+            panelGroup.interactable = false;
+            panelGroup.blocksRaycasts = false;
+
+            if (panelGroup.alpha <= Mathf.Epsilon)
+            {
+                panelRect.anchoredPosition = shownPosition + Vector2.right * showOffset;
+            }
+
+            if (!Application.isPlaying
+                || !isActiveAndEnabled
+                || showDuration <= Mathf.Epsilon)
+            {
+                panelRect.anchoredPosition = shownPosition;
+                panelGroup.alpha = 1f;
+                return;
+            }
+
+            positionTween = DOTween
+                .To(
+                    () => panelRect.anchoredPosition,
+                    value => panelRect.anchoredPosition = value,
+                    shownPosition,
+                    showDuration)
+                .SetEase(Ease.OutCubic)
+                .SetUpdate(true)
+                .SetTarget(this)
+                .OnComplete(() =>
+                {
+                    positionTween = null;
+                    if (targetVisible)
+                    {
+                        panelRect.anchoredPosition = shownPosition;
+                    }
+                });
+            fadeTween = DOTween
+                .To(
+                    () => panelGroup.alpha,
+                    value => panelGroup.alpha = value,
+                    1f,
+                    showDuration)
+                .SetEase(Ease.OutQuad)
+                .SetUpdate(true)
+                .SetTarget(this)
+                .OnComplete(() =>
+                {
+                    fadeTween = null;
+                    if (targetVisible)
+                    {
+                        panelGroup.alpha = 1f;
+                    }
+                });
+        }
+
+        private void SetHiddenImmediately()
+        {
+            targetVisible = false;
             if (panelGroup != null)
             {
                 panelGroup.alpha = 0f;
                 panelGroup.interactable = false;
                 panelGroup.blocksRaycasts = false;
             }
+
+            if (panelRect != null)
+            {
+                panelRect.anchoredPosition = shownPosition + Vector2.right * showOffset;
+            }
+        }
+
+        private void KillTransitions()
+        {
+            positionTween?.Kill();
+            fadeTween?.Kill();
+            positionTween = null;
+            fadeTween = null;
         }
     }
 }

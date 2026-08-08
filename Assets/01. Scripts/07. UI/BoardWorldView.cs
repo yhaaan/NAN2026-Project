@@ -37,6 +37,7 @@ namespace NAN2026.Gomoku
         private Tween victoryLineTween;
         private SpriteRenderer victoryLine;
         private float placementImpactOffset;
+        private Vector2 lastHealthBarLayoutSize = new Vector2(float.NaN, float.NaN);
 
         public int ActiveUnitViewCount => unitViews.Count;
 
@@ -343,6 +344,7 @@ namespace NAN2026.Gomoku
         private void LateUpdate()
         {
             UpdateLayout();
+            UpdateHealthBarLayouts();
         }
 
         private void OnDestroy()
@@ -621,6 +623,34 @@ namespace NAN2026.Gomoku
                 return;
             }
 
+            ApplyHealthBarLayout(unit, healthBar);
+            healthBar.Refresh();
+        }
+
+        private void UpdateHealthBarLayouts()
+        {
+            if (inputRect == null)
+            {
+                return;
+            }
+
+            Vector2 currentSize = inputRect.rect.size;
+            if ((currentSize - lastHealthBarLayoutSize).sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            lastHealthBarLayoutSize = currentSize;
+            foreach (KeyValuePair<BoardUnit, UnitHealthBarView> pair in healthBars)
+            {
+                ApplyHealthBarLayout(pair.Key, pair.Value);
+            }
+        }
+
+        private void ApplyHealthBarLayout(
+            BoardUnit unit,
+            UnitHealthBarView healthBar)
+        {
             Rect rect = inputRect.rect;
             float boardSize = Mathf.Min(rect.width, rect.height);
             float margin = boardSize * 0.045f;
@@ -636,7 +666,6 @@ namespace NAN2026.Gomoku
             healthBar.SetLayout(
                 cell + Vector2.down * spacing * 0.48f,
                 new Vector2(spacing * 0.82f, Mathf.Max(4f, spacing * 0.08f)));
-            healthBar.Refresh();
         }
 
         private static SpriteRenderer CreateRenderer(

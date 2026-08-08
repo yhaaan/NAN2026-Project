@@ -12,6 +12,9 @@ namespace NAN2026.Gomoku
         [SerializeField] private PlacementCursorView placementCursorView;
         [SerializeField] private UnitInfoPanelView unitInfoPanelPrefab;
         [SerializeField] private TurnStatusView turnStatusView;
+        [SerializeField] private GameObject combatSpeedPanel;
+        [SerializeField] private Button combatSpeedButton;
+        [SerializeField] private Text combatSpeedText;
         [SerializeField] private GameObject shopPanel;
         [SerializeField] private Text goldText;
         [SerializeField] private Text selectedText;
@@ -25,6 +28,8 @@ namespace NAN2026.Gomoku
 
         private Action<int> onShopSelection;
         private Action<int, int> onBoardClick;
+        private Action<int> onCombatSpeedChanged;
+        private int combatSpeed = 1;
         private StoneColor playerSide = StoneColor.White;
         private UnitInfoPanelView unitInfoPanel;
         private CombatResolver combat;
@@ -52,10 +57,14 @@ namespace NAN2026.Gomoku
             Action<int, int> boardClick,
             Action<int> shopSelection,
             Action reroll,
-            Action continueAction)
+            Action continueAction,
+            Action<int> combatSpeedChanged,
+            int initialCombatSpeed)
         {
             onBoardClick = boardClick;
             onShopSelection = shopSelection;
+            onCombatSpeedChanged = combatSpeedChanged;
+            combatSpeed = Mathf.Clamp(initialCombatSpeed, 1, 5);
 
             for (int index = 0; index < shopSlots.Length; index++)
             {
@@ -66,6 +75,10 @@ namespace NAN2026.Gomoku
             rerollButton.onClick.AddListener(() => reroll());
             continueButton.onClick.RemoveAllListeners();
             continueButton.onClick.AddListener(() => continueAction());
+            combatSpeedButton.onClick.RemoveAllListeners();
+            combatSpeedButton.onClick.AddListener(CycleCombatSpeed);
+            combatSpeedPanel.SetActive(true);
+            RefreshCombatSpeedLabel();
         }
 
         public void BindGame(GomokuGame game, StoneColor playerSide)
@@ -199,6 +212,18 @@ namespace NAN2026.Gomoku
         public void HideResult()
         {
             resultPanel.SetActive(false);
+        }
+
+        private void CycleCombatSpeed()
+        {
+            combatSpeed = combatSpeed >= 5 ? 1 : combatSpeed + 1;
+            RefreshCombatSpeedLabel();
+            onCombatSpeedChanged?.Invoke(combatSpeed);
+        }
+
+        private void RefreshCombatSpeedLabel()
+        {
+            combatSpeedText.text = $"x{combatSpeed}";
         }
 
         private void HandleShopSelection(int index)

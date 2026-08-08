@@ -49,10 +49,29 @@ namespace NAN2026.Gomoku.Tests
             Text phaseText = turnStatusView.transform.Find("PhaseText").GetComponent<Text>();
             Text scoreText = turnStatusView.transform.Find("ScoreText").GetComponent<Text>();
             Slider combatSlider = turnStatusView.GetComponentInChildren<Slider>(true);
+            Transform speedButtonRoot = hud.transform.Find("CombatSpeedPanel");
+            Button speedButton = speedButtonRoot.GetComponent<Button>();
+            Text speedText = speedButtonRoot.Find("SpeedText").GetComponent<Text>();
             Assert.That(turnText.text, Is.EqualTo("1턴"));
             Assert.That(phaseText.text, Is.EqualTo("적 턴"));
             Assert.That(scoreText.text, Is.EqualTo("플레이어 0 : 0 적"));
             Assert.That(combatSlider.gameObject.activeSelf, Is.False);
+            Assert.That(speedButtonRoot.gameObject.activeSelf, Is.True);
+            Assert.That(speedText.text, Is.EqualTo("x1"));
+
+            speedButton.onClick.Invoke();
+            Assert.That(speedText.text, Is.EqualTo("x2"));
+            speedButton.onClick.Invoke();
+            Assert.That(speedText.text, Is.EqualTo("x3"));
+            speedButton.onClick.Invoke();
+            Assert.That(speedText.text, Is.EqualTo("x4"));
+            speedButton.onClick.Invoke();
+            Assert.That(speedText.text, Is.EqualTo("x5"));
+            speedButton.onClick.Invoke();
+            Assert.That(speedText.text, Is.EqualTo("x1"));
+            speedButton.onClick.Invoke();
+            Assert.That(speedText.text, Is.EqualTo("x2"));
+            Assert.That(Time.timeScale, Is.EqualTo(1f));
 
             var pointer = new PointerEventData(EventSystem.current)
             {
@@ -102,6 +121,9 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(combatHealthBars, Has.Length.EqualTo(2));
             Assert.That(combatSlider.gameObject.activeSelf, Is.True);
             Assert.That(combatSlider.value, Is.EqualTo(0f));
+            Assert.That(speedButtonRoot.gameObject.activeSelf, Is.True);
+            Assert.That(speedText.text, Is.EqualTo("x2"));
+            Assert.That(Time.timeScale, Is.EqualTo(2f));
 
             yield return null;
             Assert.That(combatSlider.value, Is.GreaterThan(0f));
@@ -117,6 +139,9 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(turnText.text, Is.EqualTo("2턴"));
             Assert.That(phaseText.text, Is.EqualTo("적 턴"));
             Assert.That(combatSlider.gameObject.activeSelf, Is.False);
+            Assert.That(speedButtonRoot.gameObject.activeSelf, Is.True);
+            Assert.That(speedText.text, Is.EqualTo("x2"));
+            Assert.That(Time.timeScale, Is.EqualTo(1f));
 
             Object.Destroy(boardView.gameObject);
             yield return null;

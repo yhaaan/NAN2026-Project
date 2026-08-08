@@ -12,6 +12,8 @@ namespace NAN2026.Gomoku
         private const float FinalJumpSettleDuration = 0.43f;
         private const float VictoryLineDuration = 0.3f;
         private const float MatchTitleDelay = 0.38f;
+        private const int MinCombatSpeed = 1;
+        private const int MaxCombatSpeed = 5;
 
         [SerializeField] private UnitCatalogSO unitCatalog;
         [SerializeField] private GomokuHud hud;
@@ -34,6 +36,7 @@ namespace NAN2026.Gomoku
         private bool waitingForContinue;
         private bool matchFinished;
         private bool lastGameWasDraw;
+        private int combatSpeed = MinCombatSpeed;
         private Coroutine victoryRoutine;
 
         public StoneColor PlayerSide => playerSide;
@@ -60,7 +63,14 @@ namespace NAN2026.Gomoku
             com = new GomokuCom(random);
             combat = new CombatResolver(combatDuration);
             combat.ActionResolved += HandleCombatAction;
-            hud.Initialize(HandleBoardClick, HandleShopSelection, HandleReroll, HandleContinue);
+            Time.timeScale = 1f;
+            hud.Initialize(
+                HandleBoardClick,
+                HandleShopSelection,
+                HandleReroll,
+                HandleContinue,
+                HandleCombatSpeedChanged,
+                combatSpeed);
             hud.SetCombatResolver(combat);
             StartMatch();
         }
@@ -84,14 +94,24 @@ namespace NAN2026.Gomoku
 
                 if (combat.IsFinished)
                 {
+                    Time.timeScale = 1f;
                     game.CompleteCombat();
-                    PreparePlacementTurn();
+                    if (game.IsGameOver)
+                    {
+                        FinishGame();
+                    }
+                    else
+                    {
+                        PreparePlacementTurn();
+                    }
                 }
             }
         }
 
         private void OnDestroy()
         {
+            Time.timeScale = 1f;
+
             if (victoryRoutine != null)
             {
                 StopCoroutine(victoryRoutine);
@@ -123,6 +143,7 @@ namespace NAN2026.Gomoku
 
         private void StartGame()
         {
+            Time.timeScale = 1f;
             playerSide = StoneColor.White;
             game.StartNewGame(StoneColor.Black);
             playerShop.ResetForGame();
@@ -240,6 +261,7 @@ namespace NAN2026.Gomoku
                 hud.HideShop();
                 combat.Begin(game);
                 hud.ShowCombatTimer(combat.Duration);
+                Time.timeScale = combatSpeed;
                 RefreshTurnStatus();
             }
             else
@@ -255,6 +277,7 @@ namespace NAN2026.Gomoku
 
         private void FinishGame()
         {
+            Time.timeScale = 1f;
             comTurnPending = false;
             waitingForContinue = true;
             lastGameWasDraw = game.Winner == StoneColor.None;
@@ -369,6 +392,15 @@ namespace NAN2026.Gomoku
             else
             {
                 StartGame();
+            }
+        }
+
+        private void HandleCombatSpeedChanged(int speed)
+        {
+            combatSpeed = Mathf.Clamp(speed, MinCombatSpeed, MaxCombatSpeed);
+            if (game.Phase == GamePhase.Combat && !waitingForContinue)
+            {
+                Time.timeScale = combatSpeed;
             }
         }
 

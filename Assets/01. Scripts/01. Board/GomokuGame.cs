@@ -38,6 +38,7 @@ namespace NAN2026.Gomoku
 
         public StoneColor StartingSide { get; private set; } = StoneColor.Black;
         public StoneColor CurrentTurn { get; private set; } = StoneColor.Black;
+        public StoneColor FiveChallengeSide { get; private set; } = StoneColor.None;
         public StoneColor Winner { get; private set; } = StoneColor.None;
         public GamePhase Phase { get; private set; } = GamePhase.Placement;
         public int LastMoveX { get; private set; } = -1;
@@ -64,6 +65,7 @@ namespace NAN2026.Gomoku
             winningUnits.Clear();
             StartingSide = startingSide;
             CurrentTurn = startingSide;
+            FiveChallengeSide = StoneColor.None;
             Winner = StoneColor.None;
             Phase = GamePhase.Placement;
             LastMoveX = -1;
@@ -105,11 +107,12 @@ namespace NAN2026.Gomoku
             units.Add(unit);
             LastMoveX = x;
             LastMoveY = y;
+            placementsInCycle++;
 
             if (TryFindWinningUnits(x, y, placedSide))
             {
-                Winner = placedSide;
-                Phase = GamePhase.GameOver;
+                FiveChallengeSide = placedSide;
+                Phase = GamePhase.Combat;
                 return true;
             }
 
@@ -120,7 +123,6 @@ namespace NAN2026.Gomoku
                 return true;
             }
 
-            placementsInCycle++;
             if (placementsInCycle >= 2)
             {
                 Phase = GamePhase.Combat;
@@ -140,9 +142,20 @@ namespace NAN2026.Gomoku
                 return;
             }
 
+            StoneColor lastPlacedSide = CurrentTurn;
+            if (FiveChallengeSide != StoneColor.None
+                && TryFindAnyWinningUnits(FiveChallengeSide))
+            {
+                Winner = FiveChallengeSide;
+                Phase = GamePhase.GameOver;
+                return;
+            }
+
+            FiveChallengeSide = StoneColor.None;
+            winningUnits.Clear();
             placementsInCycle = 0;
             TurnNumber++;
-            CurrentTurn = StartingSide;
+            CurrentTurn = OpponentOf(lastPlacedSide);
             Phase = GamePhase.Placement;
         }
 
@@ -236,6 +249,23 @@ namespace NAN2026.Gomoku
                 }
 
                 return true;
+            }
+
+            return false;
+        }
+
+        private bool TryFindAnyWinningUnits(StoneColor side)
+        {
+            winningUnits.Clear();
+            for (int x = 0; x < BoardSize; x++)
+            {
+                for (int y = 0; y < BoardSize; y++)
+                {
+                    if (GetStone(x, y) == side && TryFindWinningUnits(x, y, side))
+                    {
+                        return true;
+                    }
+                }
             }
 
             return false;

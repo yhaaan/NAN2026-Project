@@ -22,6 +22,8 @@ namespace NAN2026.Gomoku
         [SerializeField, Min(0)] private int range = 1;
         [SerializeField, Min(0.1f)] private float actionInterval = 1f;
         [SerializeField] private Color roleColor = Color.white;
+        [SerializeField] private UnitActionSO action;
+        [SerializeField] private UnitPresentationSO presentation;
 
         public string UnitId => unitId;
         public string DisplayName => displayName;
@@ -31,8 +33,12 @@ namespace NAN2026.Gomoku
         public int Power => power;
         public int Range => range;
         public float ActionInterval => actionInterval;
-        public Color RoleColor => roleColor;
-        public bool IsHealer => role == UnitRole.Healer;
+        public Color RoleColor => presentation != null ? presentation.AccentColor : roleColor;
+        public UnitActionSO Action => action;
+        public UnitPresentationSO Presentation => presentation;
+        public bool IsHealer => action != null
+            ? action.Kind == UnitActionKind.Heal
+            : role == UnitRole.Healer;
     }
 
 }

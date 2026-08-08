@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace NAN2026.Gomoku.Tests
 {
@@ -34,6 +35,9 @@ namespace NAN2026.Gomoku.Tests
                 boardRect.sizeDelta = new Vector2(700f, 700f);
 
                 GomokuBoardView boardView = boardObject.GetComponent<GomokuBoardView>();
+                LogAssert.Expect(
+                    LogType.Error,
+                    "GomokuBoardView requires a UnitHealthBarView prefab.");
                 boardView.Bind(game, StoneColor.Black, null);
                 Canvas.ForceUpdateCanvases();
 

@@ -38,13 +38,19 @@ namespace NAN2026.Gomoku
                 return;
             }
 
+            if (!unitCatalog.TryValidate(out string catalogError))
+            {
+                Debug.LogError($"Unit catalog is invalid: {catalogError}", this);
+                enabled = false;
+                return;
+            }
+
             var random = new System.Random();
             playerShop = new ShopState(unitCatalog.Units, random);
             comShop = new ShopState(unitCatalog.Units, random);
             com = new GomokuCom(random);
             combat = new CombatResolver(combatDuration);
-            combat.UnitDamaged += HandleUnitDamaged;
-            combat.UnitHealed += HandleUnitHealed;
+            combat.ActionResolved += HandleCombatAction;
             hud.Initialize(HandleBoardClick, HandleShopSelection, HandleReroll, HandleContinue);
             hud.SetCombatResolver(combat);
             StartMatch();
@@ -65,7 +71,6 @@ namespace NAN2026.Gomoku
             if (game.Phase == GamePhase.Combat && !waitingForContinue)
             {
                 combat.Tick(Time.deltaTime);
-                hud.RefreshBoard();
                 hud.SetCombatElapsed(combat.Elapsed);
 
                 if (combat.IsFinished)
@@ -73,6 +78,14 @@ namespace NAN2026.Gomoku
                     game.CompleteCombat();
                     PreparePlacementTurn();
                 }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (combat != null)
+            {
+                combat.ActionResolved -= HandleCombatAction;
             }
         }
 
@@ -211,14 +224,9 @@ namespace NAN2026.Gomoku
             }
         }
 
-        private void HandleUnitDamaged(BoardUnit attacker, BoardUnit target, int damage)
+        private void HandleCombatAction(CombatActionEvent actionEvent)
         {
-            hud.ShowDamage(target.X, target.Y, damage, attacker.Side == playerSide);
-        }
-
-        private void HandleUnitHealed(BoardUnit healer, BoardUnit target, int healing)
-        {
-            hud.ShowHeal(target.X, target.Y, healing);
+            hud.PlayCombatAction(actionEvent);
         }
 
         private void FinishGame()

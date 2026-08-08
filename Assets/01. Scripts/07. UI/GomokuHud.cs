@@ -158,6 +158,11 @@ namespace NAN2026.Gomoku
             boardView.ShowHeal(x, y, healing);
         }
 
+        public void PlayCombatAction(CombatActionEvent actionEvent)
+        {
+            boardView.PlayCombatAction(actionEvent);
+        }
+
         public void ShowResult(string title, string score, string buttonLabel)
         {
             resultPanel.SetActive(true);

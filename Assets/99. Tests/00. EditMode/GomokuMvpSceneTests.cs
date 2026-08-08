@@ -49,6 +49,54 @@ namespace NAN2026.Gomoku.Tests
             var catalog = serializedController.FindProperty("unitCatalog").objectReferenceValue as UnitCatalogSO;
             Assert.That(catalog, Is.Not.Null);
             Assert.That(catalog.Units, Has.Count.EqualTo(4));
+            Assert.That(catalog.TryValidate(out string catalogError), Is.True, catalogError);
+            foreach (UnitDefinitionSO definition in catalog.Units)
+            {
+                Assert.That(definition.Action, Is.Not.Null, definition.UnitId);
+                Assert.That(definition.Presentation, Is.Not.Null, definition.UnitId);
+                Assert.That(definition.Presentation.WorldPrefab, Is.Not.Null, definition.UnitId);
+                Assert.That(
+                    PrefabUtility.IsPartOfPrefabAsset(definition.Presentation.WorldPrefab),
+                    Is.True,
+                    definition.UnitId);
+
+                UnitView unitPrefab = definition.Presentation.WorldPrefab;
+                Transform body = unitPrefab.transform.Find("Body");
+                Assert.That(body, Is.Not.Null, $"{definition.UnitId} requires a Body child.");
+                Assert.That(
+                    unitPrefab.GetComponent<SpriteRenderer>(),
+                    Is.Null,
+                    $"{definition.UnitId} root must not own the visual renderer.");
+                Assert.That(
+                    body.GetComponent<SpriteRenderer>(),
+                    Is.Not.Null,
+                    $"{definition.UnitId} Body requires a SpriteRenderer.");
+
+                var serializedUnit = new SerializedObject(unitPrefab);
+                Assert.That(
+                    serializedUnit.FindProperty("bodyRoot").objectReferenceValue,
+                    Is.SameAs(body),
+                    definition.UnitId);
+                Assert.That(
+                    serializedUnit.FindProperty("bodyRenderer").objectReferenceValue,
+                    Is.SameAs(body.GetComponent<SpriteRenderer>()),
+                    definition.UnitId);
+                var feedbackMaterial = serializedUnit.FindProperty("feedbackParticleMaterial")
+                    .objectReferenceValue as Material;
+                if (feedbackMaterial != null)
+                {
+                    Assert.That(feedbackMaterial.shader, Is.Not.Null, definition.UnitId);
+                    Assert.That(
+                        feedbackMaterial.shader.name,
+                        Is.EqualTo("Universal Render Pipeline/Particles/Unlit"),
+                        definition.UnitId);
+                }
+            }
+
+            Camera mainCamera = FindInScene<Camera>(scene);
+            Assert.That(mainCamera, Is.Not.Null);
+            Assert.That(mainCamera.orthographic, Is.True);
+            Assert.That(mainCamera.transform.position.z, Is.LessThan(0f));
 
             var serializedHud = new SerializedObject(hud);
             Assert.That(serializedHud.FindProperty("shopSlots").arraySize, Is.EqualTo(ShopState.SlotCount));
@@ -82,6 +130,17 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(serializedBoard.FindProperty("attackDamagePopup").objectReferenceValue, Is.Not.Null);
             Assert.That(serializedBoard.FindProperty("hitDamagePopup").objectReferenceValue, Is.Not.Null);
             Assert.That(serializedBoard.FindProperty("healPopup").objectReferenceValue, Is.Not.Null);
+            var healthBarPrefab = serializedBoard.FindProperty("healthBarPrefab")
+                .objectReferenceValue as UnitHealthBarView;
+            Assert.That(healthBarPrefab, Is.Not.Null);
+            Assert.That(
+                AssetDatabase.GetAssetPath(healthBarPrefab),
+                Is.EqualTo("Assets/02. Prefabs/02. UI/UnitHealthBar.prefab"));
+            Assert.That(healthBarPrefab.GetComponent<UnityEngine.UI.Image>().raycastTarget, Is.False);
+            Assert.That(healthBarPrefab.FillRect, Is.Not.Null);
+            Assert.That(healthBarPrefab.FillImage, Is.Not.Null);
+            Assert.That(healthBarPrefab.FillImage.raycastTarget, Is.False);
+            Assert.That(healthBarPrefab.FillRect.anchorMax.x, Is.EqualTo(1f));
             var serializedCursor = new SerializedObject(cursorView);
             Assert.That(serializedCursor.FindProperty("boardView").objectReferenceValue, Is.SameAs(boardView));
             Assert.That(serializedCursor.FindProperty("shopRect").objectReferenceValue, Is.Not.Null);

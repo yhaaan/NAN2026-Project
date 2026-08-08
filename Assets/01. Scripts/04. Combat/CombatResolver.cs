@@ -15,6 +15,7 @@ namespace NAN2026.Gomoku
         public string LastAction { get; private set; } = string.Empty;
         public event Action<BoardUnit, BoardUnit, int> UnitDamaged;
         public event Action<BoardUnit, BoardUnit, int> UnitHealed;
+        public event Action<CombatActionEvent> ActionResolved;
 
         public bool IsFinished => game == null
             || Elapsed >= Duration
@@ -84,77 +85,104 @@ namespace NAN2026.Gomoku
 
         private void Act(BoardUnit actor)
         {
-            if (actor.Definition.IsHealer)
-            {
-                HealAllies(actor);
-                return;
-            }
+            CombatActionPlan plan = actor.Definition.Action != null
+                ? actor.Definition.Action.BuildPlan(actor, game.Units)
+                : actor.Definition.IsHealer
+                    ? CombatActionRules.BuildAreaHeal(actor, game.Units)
+                    : CombatActionRules.BuildBasicAttack(actor, game.Units);
 
-            BoardUnit target = SelectAttackTarget(actor);
-            if (target == null)
-            {
-                return;
-            }
+            var results = new List<CombatEffectResult>();
+            var defeatedUnits = new List<BoardUnit>();
 
-            int damage = Math.Min(actor.Definition.Power, target.CurrentHealth);
-            target.TakeDamage(damage);
-            LastAction = $"{actor.Definition.DisplayName} attacks {target.Definition.DisplayName}";
-            if (damage > 0)
+            foreach (CombatEffect effect in plan.Effects)
             {
-                UnitDamaged?.Invoke(actor, target, damage);
-            }
-
-            if (!target.IsAlive)
-            {
-                cooldowns.Remove(target);
-                game.RemoveUnit(target);
-            }
-        }
-
-        private void HealAllies(BoardUnit healer)
-        {
-            BoardUnit[] woundedAllies = game.Units
-                .Where(unit => unit.IsAlive
-                    && unit.Side == healer.Side
-                    && unit.CurrentHealth < unit.Definition.MaxHealth
-                    && healer.DistanceTo(unit) <= healer.Definition.Range)
-                .ToArray();
-
-            foreach (BoardUnit ally in woundedAllies)
-            {
-                int missingHealth = ally.Definition.MaxHealth - ally.CurrentHealth;
-                int healing = Math.Min(healer.Definition.Power, missingHealth);
-                ally.Heal(healing);
-                if (healing > 0)
+                BoardUnit target = effect.Target;
+                if (target == null || !target.IsAlive || effect.Amount <= 0)
                 {
-                    UnitHealed?.Invoke(healer, ally, healing);
+                    continue;
+                }
+
+                int appliedAmount;
+                bool lethal = false;
+                if (effect.Kind == CombatEffectKind.Damage)
+                {
+                    appliedAmount = Math.Min(effect.Amount, target.CurrentHealth);
+                    target.TakeDamage(appliedAmount);
+                    lethal = !target.IsAlive;
+                    UnitDamaged?.Invoke(actor, target, appliedAmount);
+                }
+                else
+                {
+                    int missingHealth = target.Definition.MaxHealth - target.CurrentHealth;
+                    appliedAmount = Math.Min(effect.Amount, missingHealth);
+                    target.Heal(appliedAmount);
+                    UnitHealed?.Invoke(actor, target, appliedAmount);
+                }
+
+                if (appliedAmount <= 0)
+                {
+                    continue;
+                }
+
+                results.Add(new CombatEffectResult(target, effect.Kind, appliedAmount, lethal));
+                if (lethal)
+                {
+                    defeatedUnits.Add(target);
                 }
             }
 
-            if (woundedAllies.Length > 0)
+            if (results.Count == 0)
             {
-                LastAction = $"{healer.Definition.DisplayName} heals {woundedAllies.Length} unit(s)";
+                return;
+            }
+
+            LastAction = plan.Kind == UnitActionKind.Heal
+                ? $"{actor.Definition.DisplayName} heals {results.Count} unit(s)"
+                : $"{actor.Definition.DisplayName} attacks {results[0].Target.Definition.DisplayName}";
+            ActionResolved?.Invoke(new CombatActionEvent(actor, plan.Kind, results.ToArray()));
+
+            foreach (BoardUnit defeatedUnit in defeatedUnits)
+            {
+                cooldowns.Remove(defeatedUnit);
+                game.RemoveUnit(defeatedUnit);
             }
         }
+    }
 
-        private BoardUnit SelectAttackTarget(BoardUnit attacker)
+    public readonly struct CombatEffectResult
+    {
+        public BoardUnit Target { get; }
+        public CombatEffectKind Kind { get; }
+        public int Amount { get; }
+        public bool IsLethal { get; }
+
+        public CombatEffectResult(
+            BoardUnit target,
+            CombatEffectKind kind,
+            int amount,
+            bool isLethal)
         {
-            IEnumerable<BoardUnit> candidates = game.Units.Where(unit =>
-                unit.IsAlive
-                && unit.Side != attacker.Side
-                && attacker.DistanceTo(unit) <= attacker.Definition.Range);
+            Target = target;
+            Kind = kind;
+            Amount = amount;
+            IsLethal = isLethal;
+        }
+    }
 
-            BoardUnit[] inRange = candidates.ToArray();
-            if (inRange.Any(unit => unit.Definition.Role == UnitRole.Tank))
-            {
-                inRange = inRange.Where(unit => unit.Definition.Role == UnitRole.Tank).ToArray();
-            }
+    public sealed class CombatActionEvent
+    {
+        public BoardUnit Actor { get; }
+        public UnitActionKind Kind { get; }
+        public IReadOnlyList<CombatEffectResult> Results { get; }
 
-            return inRange
-                .OrderBy(attacker.DistanceTo)
-                .ThenBy(unit => unit.CurrentHealth)
-                .ThenBy(unit => unit.PlacementOrder)
-                .FirstOrDefault();
+        public CombatActionEvent(
+            BoardUnit actor,
+            UnitActionKind kind,
+            IReadOnlyList<CombatEffectResult> results)
+        {
+            Actor = actor;
+            Kind = kind;
+            Results = results ?? Array.Empty<CombatEffectResult>();
         }
     }
 }

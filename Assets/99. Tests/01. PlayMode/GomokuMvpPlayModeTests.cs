@@ -39,6 +39,7 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(controller.PlayerSide, Is.EqualTo(StoneColor.White));
             Assert.That(hud, Is.Not.Null);
             Assert.That(boardView, Is.Not.Null);
+            Assert.That(boardView.WorldView, Is.Not.Null);
             Assert.That(shopSlots, Has.Length.EqualTo(ShopState.SlotCount));
             Assert.That(infoPanel, Is.Not.Null);
             Assert.That(infoPanel.IsVisible, Is.False);
@@ -75,6 +76,13 @@ namespace NAN2026.Gomoku.Tests
 
             yield return new WaitForSeconds(0.6f);
             Assert.That(phaseText.text, Is.EqualTo("플레이어 턴"));
+            Assert.That(boardView.WorldView.ActiveUnitViewCount, Is.EqualTo(1));
+            UnitHealthBarView[] initialHealthBars = Object.FindObjectsByType<UnitHealthBarView>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
+            Assert.That(initialHealthBars, Has.Length.EqualTo(1));
+            Assert.That(initialHealthBars[0].HealthRatio, Is.EqualTo(1f));
+            Assert.That(initialHealthBars[0].FillRect.anchorMax.x, Is.EqualTo(1f));
 
             FieldInfo gameField = typeof(GomokuGameController).GetField(
                 "game",
@@ -87,6 +95,11 @@ namespace NAN2026.Gomoku.Tests
             InvokePrivate(controller, "HandleBoardClick", playerPosition.x, playerPosition.y);
 
             Assert.That(phaseText.text, Is.EqualTo("전투"));
+            Assert.That(boardView.WorldView.ActiveUnitViewCount, Is.EqualTo(2));
+            UnitHealthBarView[] combatHealthBars = Object.FindObjectsByType<UnitHealthBarView>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
+            Assert.That(combatHealthBars, Has.Length.EqualTo(2));
             Assert.That(combatSlider.gameObject.activeSelf, Is.True);
             Assert.That(combatSlider.value, Is.EqualTo(0f));
 
@@ -104,6 +117,34 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(turnText.text, Is.EqualTo("2턴"));
             Assert.That(phaseText.text, Is.EqualTo("적 턴"));
             Assert.That(combatSlider.gameObject.activeSelf, Is.False);
+
+            Object.Destroy(boardView.gameObject);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator UnitViewDotweenAnimationsCompleteAndRestoreState()
+        {
+            UnitView actor = UnitView.CreateRuntimePlaceholder(null);
+            UnitView target = UnitView.CreateRuntimePlaceholder(null);
+            actor.transform.localPosition = Vector3.zero;
+            target.transform.localPosition = Vector3.right;
+
+            actor.PlayAction(target);
+            yield return new WaitForSeconds(0.24f);
+
+            Assert.That(Vector3.Distance(actor.transform.localPosition, Vector3.zero), Is.LessThan(0.001f));
+
+            bool deathCompleted = false;
+            actor.PlayDeath(0.1f, () => deathCompleted = true);
+            yield return new WaitForSeconds(0.12f);
+
+            Assert.That(deathCompleted, Is.True);
+            Assert.That(Vector3.Distance(actor.transform.localScale, Vector3.zero), Is.LessThan(0.001f));
+
+            Object.Destroy(actor.gameObject);
+            Object.Destroy(target.gameObject);
+            yield return null;
         }
 
         private static Vector2Int FindOpenAdjacentPosition(GomokuGame game, int centerX, int centerY)

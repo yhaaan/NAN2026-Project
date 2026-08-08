@@ -21,3 +21,5 @@ MonoBehaviour:
   range: 3
   actionInterval: 1.2
   roleColor: {r: 0.75, g: 0.35, b: 0.95, a: 1}
+  action: {fileID: 11400000, guid: 436e4b153da349dbc06df4a6302e5264, type: 2}
+  presentation: {fileID: 11400000, guid: dcf7d4aec63c4264df608d3fc9b7ebfd, type: 2}

@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using DamageNumbersPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -10,14 +9,12 @@ namespace NAN2026.Gomoku
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class GomokuBoardView : MaskableGraphic, IPointerClickHandler
     {
-        private static readonly Color BoardColor = new Color(0.78f, 0.57f, 0.30f);
-        private static readonly Color GridColor = new Color(0.16f, 0.11f, 0.07f);
-        private static readonly Color PlayerRangeColor = new Color(0.12f, 0.62f, 1f, 0.28f);
-        private static readonly Color EnemyRangeColor = new Color(1f, 0.2f, 0.16f, 0.28f);
-
         [SerializeField] private DamageNumber attackDamagePopup;
         [SerializeField] private DamageNumber hitDamagePopup;
         [SerializeField] private DamageNumber healPopup;
+        [SerializeField] private UnitHealthBarView healthBarPrefab;
+        [SerializeField] private Sprite boardSprite;
+        [SerializeField] private BoardWorldView worldView;
 
         private GomokuGame game;
         private StoneColor playerSide = StoneColor.White;
@@ -25,14 +22,17 @@ namespace NAN2026.Gomoku
         private Canvas rootCanvas;
         private UnitDefinitionSO placementPreviewDefinition;
         private BoardPointerState pointerState = BoardPointerState.None;
+        private bool ownsWorldView;
 
         public BoardPointerState PointerState => pointerState;
+        public BoardWorldView WorldView => worldView;
+        public float PlacementPreviewWorldDiameter => 0.82f;
         public float PlacementPreviewDiameter
         {
             get
             {
                 GetGridMetrics(out _, out float spacing);
-                return spacing * 0.82f;
+                return spacing * PlacementPreviewWorldDiameter;
             }
         }
 
@@ -45,15 +45,26 @@ namespace NAN2026.Gomoku
             placementPreviewDefinition = null;
             pointerState = BoardPointerState.None;
             raycastTarget = true;
+            EnsureWorldView();
+            worldView?.ClearAllUnits();
+            worldView?.SyncUnits(game.Units, playerSide);
+            UpdateWorldPointerPresentation();
             SetVerticesDirty();
         }
 
         public void Refresh()
         {
+            if (game == null)
+            {
+                return;
+            }
+
             if (pointerState.Mode == BoardPointerMode.UnitHover)
             {
                 BoardUnit hoveredUnit = pointerState.HoveredUnit;
-                if (hoveredUnit == null || game.GetUnit(hoveredUnit.X, hoveredUnit.Y) != hoveredUnit)
+                if (hoveredUnit == null
+                    || !hoveredUnit.IsAlive
+                    || game.GetUnit(hoveredUnit.X, hoveredUnit.Y) != hoveredUnit)
                 {
                     pointerState = BoardPointerState.None;
                 }
@@ -69,7 +80,9 @@ namespace NAN2026.Gomoku
                 pointerState = BoardPointerState.None;
             }
 
-            SetVerticesDirty();
+            EnsureWorldView();
+            worldView?.SyncUnits(game.Units, playerSide);
+            UpdateWorldPointerPresentation();
         }
 
         public void SetPlacementPreview(UnitDefinitionSO definition)
@@ -83,27 +96,39 @@ namespace NAN2026.Gomoku
             ClearPointerState();
         }
 
+        public void PlayCombatAction(CombatActionEvent actionEvent)
+        {
+            EnsureWorldView();
+            worldView?.PlayCombatAction(actionEvent);
+
+            foreach (CombatEffectResult result in actionEvent.Results)
+            {
+                if (result.Kind == CombatEffectKind.Damage)
+                {
+                    ShowDamage(
+                        result.Target.X,
+                        result.Target.Y,
+                        result.Amount,
+                        actionEvent.Actor.Side == playerSide,
+                        false);
+                }
+                else
+                {
+                    ShowHeal(result.Target.X, result.Target.Y, result.Amount, false);
+                }
+            }
+
+            Refresh();
+        }
+
         public void ShowDamage(int x, int y, int damage, bool causedByPlayer)
         {
-            GetGridMetrics(out Rect gridRect, out float spacing);
-            Vector2 position = Intersection(gridRect, spacing, x, y);
-            StartCoroutine(PlayDamageEffect(position, spacing));
-
-            DamageNumber popup = causedByPlayer ? attackDamagePopup : hitDamagePopup;
-            if (popup != null)
-            {
-                popup.SpawnGUI(rectTransform, position + Vector2.up * spacing * 0.35f, damage);
-            }
+            ShowDamage(x, y, damage, causedByPlayer, true);
         }
 
         public void ShowHeal(int x, int y, int healing)
         {
-            GetGridMetrics(out Rect gridRect, out float spacing);
-            Vector2 position = Intersection(gridRect, spacing, x, y);
-            if (healPopup != null)
-            {
-                healPopup.SpawnGUI(rectTransform, position + Vector2.up * spacing * 0.35f, healing);
-            }
+            ShowHeal(x, y, healing, true);
         }
 
         public void OnPointerClick(PointerEventData eventData)
@@ -137,130 +162,61 @@ namespace NAN2026.Gomoku
         protected override void OnPopulateMesh(VertexHelper vertexHelper)
         {
             vertexHelper.Clear();
+            AddTransparentQuad(vertexHelper, rectTransform.rect);
+        }
+
+        protected override void OnDestroy()
+        {
+            if (ownsWorldView && worldView != null)
+            {
+                if (Application.isPlaying)
+                {
+                    Destroy(worldView.gameObject);
+                }
+                else
+                {
+                    DestroyImmediate(worldView.gameObject);
+                }
+            }
+
+            base.OnDestroy();
+        }
+
+        private void ShowDamage(
+            int x,
+            int y,
+            int damage,
+            bool causedByPlayer,
+            bool playWorldFeedback)
+        {
             GetGridMetrics(out Rect gridRect, out float spacing);
-
-            float boardSize = Mathf.Min(rectTransform.rect.width, rectTransform.rect.height);
-            AddQuad(vertexHelper, new Rect(-boardSize * 0.5f, -boardSize * 0.5f, boardSize, boardSize), BoardColor);
-
-            for (int index = 0; index < GomokuGame.BoardSize; index++)
+            Vector2 position = Intersection(gridRect, spacing, x, y);
+            if (playWorldFeedback)
             {
-                float offset = index * spacing;
-                AddQuad(vertexHelper, new Rect(gridRect.xMin + offset - 1f, gridRect.yMin, 2f, gridRect.height), GridColor);
-                AddQuad(vertexHelper, new Rect(gridRect.xMin, gridRect.yMin + offset - 1f, gridRect.width, 2f), GridColor);
+                EnsureWorldView();
+                worldView?.PlayDamageAt(x, y);
             }
 
-            int[] starIndices = { 3, 7, 11 };
-            foreach (int x in starIndices)
+            DamageNumber popup = causedByPlayer ? attackDamagePopup : hitDamagePopup;
+            if (popup != null)
             {
-                foreach (int y in starIndices)
-                {
-                    AddCircle(vertexHelper, Intersection(gridRect, spacing, x, y), Mathf.Max(3f, spacing * 0.09f), GridColor, 12);
-                }
-            }
-
-            if (game == null)
-            {
-                return;
-            }
-
-            if (pointerState.Mode == BoardPointerMode.PlacementPreview)
-            {
-                DrawRange(
-                    vertexHelper,
-                    gridRect,
-                    spacing,
-                    pointerState.X,
-                    pointerState.Y,
-                    placementPreviewDefinition.Range,
-                    PlayerRangeColor);
-            }
-            else if (pointerState.Mode == BoardPointerMode.UnitHover)
-            {
-                BoardUnit hoveredUnit = pointerState.HoveredUnit;
-                Color rangeColor = hoveredUnit.Side == playerSide ? PlayerRangeColor : EnemyRangeColor;
-                DrawRange(
-                    vertexHelper,
-                    gridRect,
-                    spacing,
-                    hoveredUnit.X,
-                    hoveredUnit.Y,
-                    hoveredUnit.Definition.Range,
-                    rangeColor);
-            }
-
-            foreach (BoardUnit unit in game.Units)
-            {
-                DrawUnit(vertexHelper, gridRect, spacing, unit);
-            }
-
-            if (pointerState.Mode == BoardPointerMode.PlacementPreview)
-            {
-                DrawUnitPreview(vertexHelper, gridRect, spacing);
+                popup.SpawnGUI(rectTransform, position + Vector2.up * spacing * 0.35f, damage);
             }
         }
 
-        private void DrawUnit(VertexHelper vertexHelper, Rect gridRect, float spacing, BoardUnit unit)
+        private void ShowHeal(int x, int y, int healing, bool playWorldFeedback)
         {
-            Vector2 center = Intersection(gridRect, spacing, unit.X, unit.Y);
-            float radius = spacing * 0.41f;
-            UnitStoneMeshUtility.AddStone(
-                vertexHelper,
-                center,
-                radius,
-                unit.Side,
-                unit.Definition.RoleColor,
-                false);
-
-            float healthRatio = (float)unit.CurrentHealth / unit.Definition.MaxHealth;
-            Rect healthBack = new Rect(center.x - radius, center.y - radius - 5f, radius * 2f, 4f);
-            AddQuad(vertexHelper, healthBack, new Color(0.12f, 0.12f, 0.12f));
-            AddQuad(
-                vertexHelper,
-                new Rect(healthBack.x, healthBack.y, healthBack.width * healthRatio, healthBack.height),
-                unit.Side == playerSide
-                    ? new Color(0.25f, 0.85f, 0.34f)
-                    : new Color(0.92f, 0.18f, 0.12f));
-
-            if (unit.X == game.LastMoveX && unit.Y == game.LastMoveY)
+            GetGridMetrics(out Rect gridRect, out float spacing);
+            Vector2 position = Intersection(gridRect, spacing, x, y);
+            if (playWorldFeedback)
             {
-                AddCircle(vertexHelper, center, Mathf.Max(2.5f, radius * 0.09f), Color.red, 10);
+                EnsureWorldView();
+                worldView?.PlayHealAt(x, y);
             }
-        }
 
-        private void DrawUnitPreview(VertexHelper vertexHelper, Rect gridRect, float spacing)
-        {
-            Vector2 center = Intersection(gridRect, spacing, pointerState.X, pointerState.Y);
-            float radius = spacing * 0.41f;
-            UnitStoneMeshUtility.AddStone(
-                vertexHelper,
-                center,
-                radius,
-                playerSide,
-                placementPreviewDefinition.RoleColor,
-                true);
-        }
-
-        private void DrawRange(
-            VertexHelper vertexHelper,
-            Rect gridRect,
-            float spacing,
-            int originX,
-            int originY,
-            int range,
-            Color color)
-        {
-            float markerSize = spacing * 0.78f;
-
-            for (int x = Mathf.Max(0, originX - range); x <= Mathf.Min(GomokuGame.BoardSize - 1, originX + range); x++)
+            if (healPopup != null)
             {
-                for (int y = Mathf.Max(0, originY - range); y <= Mathf.Min(GomokuGame.BoardSize - 1, originY + range); y++)
-                {
-                    Vector2 center = Intersection(gridRect, spacing, x, y);
-                    AddQuad(
-                        vertexHelper,
-                        new Rect(center.x - markerSize * 0.5f, center.y - markerSize * 0.5f, markerSize, markerSize),
-                        color);
-                }
+                healPopup.SpawnGUI(rectTransform, position + Vector2.up * spacing * 0.35f, healing);
             }
         }
 
@@ -291,8 +247,7 @@ namespace NAN2026.Gomoku
                     return;
                 }
 
-                BoardUnit unit = game.GetUnit(x, y);
-                SetPointerState(BoardPointerState.ForUnit(unit));
+                SetPointerState(BoardPointerState.ForUnit(game.GetUnit(x, y)));
                 return;
             }
 
@@ -307,12 +262,20 @@ namespace NAN2026.Gomoku
             }
 
             pointerState = nextState;
-            SetVerticesDirty();
+            UpdateWorldPointerPresentation();
         }
 
         private void ClearPointerState()
         {
             SetPointerState(BoardPointerState.None);
+        }
+
+        private void UpdateWorldPointerPresentation()
+        {
+            worldView?.SetPointerPresentation(
+                pointerState,
+                placementPreviewDefinition,
+                playerSide);
         }
 
         private bool TryGetIntersection(Vector2 localPoint, out int x, out int y)
@@ -343,78 +306,28 @@ namespace NAN2026.Gomoku
             spacing = gridRect.width / (GomokuGame.BoardSize - 1);
         }
 
+        private void EnsureWorldView()
+        {
+            if (worldView == null)
+            {
+                var worldObject = new GameObject("BoardWorld", typeof(BoardWorldView));
+                worldView = worldObject.GetComponent<BoardWorldView>();
+                ownsWorldView = true;
+            }
+
+            worldView.Initialize(rectTransform, Camera.main, healthBarPrefab, boardSprite);
+        }
+
         private static Vector2 Intersection(Rect gridRect, float spacing, int x, int y)
         {
             return new Vector2(gridRect.xMin + x * spacing, gridRect.yMin + y * spacing);
         }
 
-        private IEnumerator PlayDamageEffect(Vector2 center, float spacing)
-        {
-            const int ParticleCount = 8;
-            const float Duration = 0.32f;
-            var particles = new RectTransform[ParticleCount];
-            var images = new Image[ParticleCount];
-            var directions = new Vector2[ParticleCount];
-
-            for (int index = 0; index < ParticleCount; index++)
-            {
-                float angle = Mathf.PI * 2f * index / ParticleCount;
-                directions[index] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-
-                var particle = new GameObject(
-                    "DamageParticle",
-                    typeof(RectTransform),
-                    typeof(CanvasRenderer),
-                    typeof(Image));
-                particle.layer = gameObject.layer;
-                RectTransform particleRect = particle.GetComponent<RectTransform>();
-                particleRect.SetParent(rectTransform, false);
-                particleRect.anchoredPosition = center;
-                particleRect.sizeDelta = Vector2.one * Mathf.Max(4f, spacing * 0.14f);
-
-                Image image = particle.GetComponent<Image>();
-                image.color = new Color(1f, 0.42f, 0.06f);
-                image.raycastTarget = false;
-                particles[index] = particleRect;
-                images[index] = image;
-            }
-
-            float elapsed = 0f;
-            while (elapsed < Duration)
-            {
-                elapsed += Time.deltaTime;
-                float progress = Mathf.Clamp01(elapsed / Duration);
-                float distance = Mathf.Lerp(
-                    spacing * 0.08f,
-                    spacing * 0.65f,
-                    1f - (1f - progress) * (1f - progress));
-
-                for (int index = 0; index < ParticleCount; index++)
-                {
-                    particles[index].anchoredPosition = center + directions[index] * distance;
-                    particles[index].localScale = Vector3.one * Mathf.Lerp(1f, 0.35f, progress);
-                    Color color = images[index].color;
-                    color.a = 1f - progress;
-                    images[index].color = color;
-                }
-
-                yield return null;
-            }
-
-            foreach (RectTransform particle in particles)
-            {
-                if (particle != null)
-                {
-                    Destroy(particle.gameObject);
-                }
-            }
-        }
-
-        private static void AddQuad(VertexHelper vertexHelper, Rect rect, Color color)
+        private static void AddTransparentQuad(VertexHelper vertexHelper, Rect rect)
         {
             int start = vertexHelper.currentVertCount;
             var vertex = UIVertex.simpleVert;
-            vertex.color = color;
+            vertex.color = Color.clear;
             vertex.position = new Vector2(rect.xMin, rect.yMin);
             vertexHelper.AddVert(vertex);
             vertex.position = new Vector2(rect.xMin, rect.yMax);
@@ -425,32 +338,6 @@ namespace NAN2026.Gomoku
             vertexHelper.AddVert(vertex);
             vertexHelper.AddTriangle(start, start + 1, start + 2);
             vertexHelper.AddTriangle(start, start + 2, start + 3);
-        }
-
-        private static void AddCircle(
-            VertexHelper vertexHelper,
-            Vector2 center,
-            float radius,
-            Color color,
-            int segments)
-        {
-            int start = vertexHelper.currentVertCount;
-            var vertex = UIVertex.simpleVert;
-            vertex.color = color;
-            vertex.position = center;
-            vertexHelper.AddVert(vertex);
-
-            for (int index = 0; index <= segments; index++)
-            {
-                float angle = Mathf.PI * 2f * index / segments;
-                vertex.position = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
-                vertexHelper.AddVert(vertex);
-            }
-
-            for (int index = 0; index < segments; index++)
-            {
-                vertexHelper.AddTriangle(start, start + index + 1, start + index + 2);
-            }
         }
     }
 }

@@ -53,12 +53,14 @@ namespace NAN2026.Gomoku.Tests
                 int reportedDamage = 0;
                 BoardUnit reportedAttacker = null;
                 BoardUnit reportedTarget = null;
+                CombatActionEvent reportedAction = null;
                 combat.UnitDamaged += (source, destination, damage) =>
                 {
                     reportedAttacker = source;
                     reportedTarget = destination;
                     reportedDamage = damage;
                 };
+                combat.ActionResolved += actionEvent => reportedAction = actionEvent;
                 combat.Begin(game);
 
                 combat.Tick(1.01f);
@@ -67,11 +69,56 @@ namespace NAN2026.Gomoku.Tests
                 Assert.That(reportedAttacker, Is.EqualTo(game.GetUnit(7, 7)));
                 Assert.That(reportedTarget.Definition, Is.EqualTo(target));
                 Assert.That(reportedDamage, Is.EqualTo(50));
+                Assert.That(reportedAction, Is.Not.Null);
+                Assert.That(reportedAction.Kind, Is.EqualTo(UnitActionKind.Damage));
+                Assert.That(reportedAction.Results.Count, Is.EqualTo(1));
+                Assert.That(reportedAction.Results[0].IsLethal, Is.True);
+                Assert.That(reportedAction.Results[0].Amount, Is.EqualTo(50));
             }
             finally
             {
                 Object.DestroyImmediate(attacker);
                 Object.DestroyImmediate(target);
+            }
+        }
+
+        [Test]
+        public void Healer_ReportsAllTargetsInSingleActionEvent()
+        {
+            UnitDefinitionSO ally = TestUnitFactory.Create("Ally", UnitRole.Melee, 100, 0, 1, 10f);
+            UnitDefinitionSO healer = TestUnitFactory.Create("Healer", UnitRole.Healer, 80, 10, 2, 1f);
+            UnitDefinitionSO enemy = TestUnitFactory.Create("Enemy", UnitRole.Melee, 100, 0, 1, 10f);
+
+            try
+            {
+                var game = new GomokuGame();
+                game.TryPlace(7, 7, ally);
+                game.TryPlace(14, 14, enemy);
+                game.CompleteCombat();
+                game.TryPlace(7, 8, healer);
+                game.TryPlace(13, 14, enemy);
+                BoardUnit firstAlly = game.GetUnit(7, 7);
+                BoardUnit secondAlly = game.GetUnit(7, 8);
+                firstAlly.TakeDamage(20);
+                secondAlly.TakeDamage(20);
+
+                var combat = new CombatResolver();
+                CombatActionEvent reportedAction = null;
+                combat.ActionResolved += actionEvent => reportedAction = actionEvent;
+                combat.Begin(game);
+                combat.Tick(1.01f);
+
+                Assert.That(reportedAction, Is.Not.Null);
+                Assert.That(reportedAction.Kind, Is.EqualTo(UnitActionKind.Heal));
+                Assert.That(reportedAction.Results.Count, Is.EqualTo(2));
+                Assert.That(reportedAction.Results[0].Kind, Is.EqualTo(CombatEffectKind.Heal));
+                Assert.That(reportedAction.Results[1].Kind, Is.EqualTo(CombatEffectKind.Heal));
+            }
+            finally
+            {
+                Object.DestroyImmediate(ally);
+                Object.DestroyImmediate(healer);
+                Object.DestroyImmediate(enemy);
             }
         }
 

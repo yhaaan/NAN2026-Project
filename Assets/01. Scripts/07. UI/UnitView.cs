@@ -13,6 +13,8 @@ namespace NAN2026.Gomoku
         [SerializeField, Min(0.01f)] private float visualDiameter = 0.78f;
         [SerializeField] private Material feedbackParticleMaterial;
         [SerializeField] private Transform vfxRoot;
+        [Header("Action VFX")]
+        [SerializeField] private ProjectileVfxView projectilePrefab;
 
         private SpriteRenderer innerRenderer;
         private SpriteRenderer accentRenderer;
@@ -29,6 +31,7 @@ namespace NAN2026.Gomoku
         private bool preview;
         private bool visualsInitialized;
         private bool usesGeneratedStone;
+        private UnitRole role;
         private static Material runtimeParticleMaterial;
 
         public bool IsDying { get; private set; }
@@ -53,6 +56,7 @@ namespace NAN2026.Gomoku
             KillTweens();
             isBound = true;
             accentColor = presentation != null ? presentation.AccentColor : targetUnit.Definition.RoleColor;
+            role = targetUnit.Definition.Role;
             restLocalPosition = transform.localPosition;
             transform.localScale = Vector3.one;
             ApplyBodyScale();
@@ -88,16 +92,175 @@ namespace NAN2026.Gomoku
             Vector3 direction = target != null
                 ? (target.transform.localPosition - restLocalPosition).normalized
                 : Vector3.up;
+
+            if (!isBound)
+            {
+                PlayDefaultAction(direction);
+                return;
+            }
+
+            switch (role)
+            {
+                case UnitRole.Melee:
+                    PlayMeleeAction(target, direction);
+                    break;
+                case UnitRole.Ranged:
+                    PlayRangedAction(target, direction);
+                    break;
+                case UnitRole.Healer:
+                    PlayHealerAction();
+                    break;
+                case UnitRole.Tank:
+                    PlayTankAction(target, direction);
+                    break;
+                default:
+                    PlayDefaultAction(direction);
+                    break;
+            }
+        }
+
+        private void PlayMeleeAction(UnitView target, Vector3 direction)
+        {
+            Vector3 windupPosition = restLocalPosition - direction * 0.06f;
+            Vector3 strikePosition = restLocalPosition + direction * 0.34f;
+            motionTween = DOTween.Sequence()
+                .SetTarget(this)
+                .Append(transform.DOLocalMove(windupPosition, 0.07f).SetEase(Ease.OutQuad))
+                .Append(transform.DOLocalMove(strikePosition, 0.08f).SetEase(Ease.InQuad))
+                .AppendCallback(() => PlayImpactPulse(
+                    TargetPosition(target, strikePosition),
+                    new Color(1f, 0.42f, 0.1f, 0.85f),
+                    new Vector3(0.46f, 0.24f, 1f),
+                    0.16f))
+                .Append(transform.DOLocalMove(restLocalPosition, 0.11f).SetEase(Ease.OutQuad))
+                .OnComplete(CompleteMotion);
+        }
+
+        private void PlayRangedAction(UnitView target, Vector3 direction)
+        {
+            Vector3 windupPosition = restLocalPosition - direction * 0.07f;
+            motionTween = DOTween.Sequence()
+                .SetTarget(this)
+                .Append(transform.DOLocalMove(windupPosition, 0.1f).SetEase(Ease.OutQuad))
+                .Append(transform.DOLocalMove(restLocalPosition + direction * 0.025f, 0.045f)
+                    .SetEase(Ease.OutQuad))
+                .AppendCallback(() => LaunchProjectile(target))
+                .Append(transform.DOLocalMove(restLocalPosition, 0.1f).SetEase(Ease.OutQuad))
+                .OnComplete(CompleteMotion);
+        }
+
+        private void PlayHealerAction()
+        {
+            motionTween = DOTween.Sequence()
+                .SetTarget(this)
+                .Append(transform.DOLocalMove(restLocalPosition + Vector3.up * 0.08f, 0.12f)
+                    .SetEase(Ease.OutQuad))
+                .Join(transform.DOScale(1.1f, 0.12f).SetEase(Ease.OutQuad))
+                .AppendCallback(PlayHealWave)
+                .Append(transform.DOLocalMove(restLocalPosition, 0.18f).SetEase(Ease.InOutQuad))
+                .Join(transform.DOScale(Vector3.one, 0.18f).SetEase(Ease.InOutQuad))
+                .OnComplete(CompleteMotion);
+        }
+
+        private void PlayTankAction(UnitView target, Vector3 direction)
+        {
+            Vector3 strikePosition = restLocalPosition + direction * 0.14f;
+            motionTween = DOTween.Sequence()
+                .SetTarget(this)
+                .Append(transform.DOScale(new Vector3(1.05f, 0.86f, 1f), 0.14f)
+                    .SetEase(Ease.InQuad))
+                .Append(transform.DOLocalMove(strikePosition, 0.13f).SetEase(Ease.OutQuad))
+                .Join(transform.DOScale(new Vector3(1.08f, 1f, 1f), 0.13f))
+                .AppendCallback(() => PlayImpactPulse(
+                    TargetPosition(target, strikePosition),
+                    new Color(0.82f, 0.72f, 0.48f, 0.8f),
+                    new Vector3(0.54f, 0.34f, 1f),
+                    0.24f))
+                .Append(transform.DOLocalMove(restLocalPosition, 0.24f).SetEase(Ease.OutSine))
+                .Join(transform.DOScale(Vector3.one, 0.24f).SetEase(Ease.OutSine))
+                .OnComplete(CompleteMotion);
+        }
+
+        private void PlayDefaultAction(Vector3 direction)
+        {
             Vector3 actionPosition = restLocalPosition + direction * 0.18f;
             motionTween = DOTween.Sequence()
                 .SetTarget(this)
                 .Append(transform.DOLocalMove(actionPosition, 0.11f).SetEase(Ease.OutQuad))
                 .Append(transform.DOLocalMove(restLocalPosition, 0.11f).SetEase(Ease.InQuad))
-                .OnComplete(() =>
+                .OnComplete(CompleteMotion);
+        }
+
+        private void LaunchProjectile(UnitView target)
+        {
+            if (target == null || projectilePrefab == null || transform.parent == null)
+            {
+                return;
+            }
+
+            ProjectileVfxView projectile = Instantiate(projectilePrefab, transform.parent);
+            projectile.Play(
+                transform.localPosition,
+                target.transform.localPosition,
+                () =>
                 {
-                    transform.localPosition = restLocalPosition;
-                    motionTween = null;
+                    if (target != null)
+                    {
+                        target.EmitFeedback(new Color(1f, 0.74f, 0.18f), 6);
+                    }
                 });
+        }
+
+        private void PlayHealWave()
+        {
+            PlayImpactPulse(
+                restLocalPosition,
+                new Color(0.28f, 1f, 0.52f, 0.72f),
+                new Vector3(1.65f, 1.65f, 1f),
+                0.36f);
+        }
+
+        private void PlayImpactPulse(
+            Vector3 localPosition,
+            Color color,
+            Vector3 targetScale,
+            float duration)
+        {
+            if (transform.parent == null)
+            {
+                return;
+            }
+
+            var pulseObject = new GameObject("ActionPulse", typeof(SpriteRenderer));
+            pulseObject.transform.SetParent(transform.parent, false);
+            pulseObject.transform.localPosition = localPosition;
+            pulseObject.transform.localScale = targetScale * 0.18f;
+
+            SpriteRenderer pulseRenderer = pulseObject.GetComponent<SpriteRenderer>();
+            pulseRenderer.sprite = WorldSpriteFactory.Ring;
+            pulseRenderer.color = color;
+            pulseRenderer.sortingLayerName = "WorldVfx";
+            pulseRenderer.sortingOrder = 0;
+
+            Color transparent = color;
+            transparent.a = 0f;
+            DOTween.Sequence()
+                .SetTarget(pulseObject)
+                .Join(pulseObject.transform.DOScale(targetScale, duration).SetEase(Ease.OutQuad))
+                .Join(CreateColorTween(pulseRenderer, transparent, duration).SetEase(Ease.OutQuad))
+                .OnComplete(() => Destroy(pulseObject));
+        }
+
+        private void CompleteMotion()
+        {
+            transform.localPosition = restLocalPosition;
+            transform.localScale = Vector3.one;
+            motionTween = null;
+        }
+
+        private static Vector3 TargetPosition(UnitView target, Vector3 fallback)
+        {
+            return target != null ? target.transform.localPosition : fallback;
         }
 
         public void PlayHit()
@@ -402,6 +565,7 @@ namespace NAN2026.Gomoku
             motionTween?.Kill();
             motionTween = null;
             transform.localPosition = restLocalPosition;
+            transform.localScale = Vector3.one;
         }
 
         private void KillTweens()
@@ -439,6 +603,8 @@ namespace NAN2026.Gomoku
     {
         private const int TextureSize = 64;
         private static Sprite circle;
+        private static Sprite arrow;
+        private static Sprite ring;
         private static Sprite square;
 
         public static Sprite Square
@@ -466,6 +632,41 @@ namespace NAN2026.Gomoku
                 }
 
                 return circle;
+            }
+        }
+
+        public static Sprite Arrow
+        {
+            get
+            {
+                if (arrow == null)
+                {
+                    arrow = CreateSprite(
+                        (x, y) => (x >= -0.85f && x <= 0.42f && Mathf.Abs(y) <= 0.12f)
+                            || (x >= 0.15f && x <= 0.85f && Mathf.Abs(y) <= (0.85f - x) * 0.72f),
+                        "WorldArrow");
+                }
+
+                return arrow;
+            }
+        }
+
+        public static Sprite Ring
+        {
+            get
+            {
+                if (ring == null)
+                {
+                    ring = CreateSprite(
+                        (x, y) =>
+                        {
+                            float radiusSquared = x * x + y * y;
+                            return radiusSquared <= 0.9f && radiusSquared >= 0.64f;
+                        },
+                        "WorldRing");
+                }
+
+                return ring;
             }
         }
 

@@ -280,5 +280,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.SceneTransitionController
   canvasGroup: {fileID: 9154765889975436860}
-  fadeOutDuration: 0.28
-  fadeInDuration: 0.32
+  fadeOutDuration: 0.4
+  fadeInDuration: 0.65

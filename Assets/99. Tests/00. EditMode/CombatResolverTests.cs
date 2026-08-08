@@ -197,5 +197,36 @@ namespace NAN2026.Gomoku.Tests
                 Object.DestroyImmediate(second);
             }
         }
+
+        [Test]
+        public void NoAttackOrHealTargets_FinishesCombatAfterOneSecond()
+        {
+            UnitDefinitionSO first = TestUnitFactory.Create("First", UnitRole.Vanguard, 100, 10, 1, 1f);
+            UnitDefinitionSO second = TestUnitFactory.Create("Second", UnitRole.Vanguard, 100, 10, 1, 1f);
+
+            try
+            {
+                var game = new GomokuGame();
+                game.TryPlace(0, 0, first);
+                game.TryPlace(14, 14, second);
+                var combat = new CombatResolver();
+                combat.Begin(game);
+
+                combat.Tick(0.99f);
+
+                Assert.That(combat.IsFinished, Is.False);
+                Assert.That(combat.Elapsed, Is.EqualTo(0.99f).Within(0.001f));
+
+                combat.Tick(0.02f);
+
+                Assert.That(combat.IsFinished, Is.True);
+                Assert.That(combat.Elapsed, Is.EqualTo(combat.Duration));
+            }
+            finally
+            {
+                Object.DestroyImmediate(first);
+                Object.DestroyImmediate(second);
+            }
+        }
     }
 }

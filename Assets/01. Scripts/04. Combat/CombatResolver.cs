@@ -7,10 +7,13 @@ namespace NAN2026.Gomoku
 {
     public sealed class CombatResolver
     {
+        private const float NoTargetEndDelay = 1f;
+
         private readonly Dictionary<BoardUnit, float> cooldowns = new Dictionary<BoardUnit, float>();
         private readonly HashSet<BoardUnit> saintProtectionUsed = new HashSet<BoardUnit>();
         private readonly HashSet<BoardUnit> explodedUnits = new HashSet<BoardUnit>();
         private GomokuGame game;
+        private float noTargetElapsed;
 
         public float Duration { get; }
         public float Elapsed { get; private set; }
@@ -34,6 +37,7 @@ namespace NAN2026.Gomoku
             game = targetGame;
             Elapsed = 0f;
             LastAction = string.Empty;
+            noTargetElapsed = 0f;
             cooldowns.Clear();
             saintProtectionUsed.Clear();
             explodedUnits.Clear();
@@ -54,6 +58,20 @@ namespace NAN2026.Gomoku
             float step = Math.Min(deltaTime, Duration - Elapsed);
             Elapsed += step;
 
+            if (!HasAnyActionTarget())
+            {
+                noTargetElapsed += step;
+                if (noTargetElapsed >= NoTargetEndDelay)
+                {
+                    Elapsed = Duration;
+                    return;
+                }
+            }
+            else
+            {
+                noTargetElapsed = 0f;
+            }
+
             BoardUnit[] actingUnits = game.Units
                 .Where(unit => unit.IsAlive)
                 .OrderBy(unit => unit.PlacementOrder)
@@ -73,6 +91,23 @@ namespace NAN2026.Gomoku
                     cooldowns[unit] += GetActionInterval(unit);
                 }
             }
+        }
+
+        private bool HasAnyActionTarget()
+        {
+            foreach (BoardUnit unit in game.Units)
+            {
+                if (unit.IsAlive
+                    && CombatActionRules.BuildAbilityPlan(
+                        unit,
+                        game.Units,
+                        GetModifiedPower(unit)).Effects.Count > 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public bool TryGetRemainingCooldown(BoardUnit unit, out float remainingSeconds)

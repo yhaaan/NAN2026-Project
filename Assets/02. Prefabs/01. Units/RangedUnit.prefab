@@ -59,6 +59,7 @@ MonoBehaviour:
   arrowAttackSfx: {fileID: 8300000, guid: 3ce406023d0fed94ebf13273a9007d8e, type: 3}
   healingMagicSfx: {fileID: 8300000, guid: ee07fe89abd21d94891ff93b013cc0dd, type: 3}
   ninjaAttackSfx: {fileID: 8300000, guid: 8386aadcc77fcb541927cd15423fa193, type: 3}
+  casterMagicSfx: {fileID: 8300000, guid: 2acf203d80debb143ac5c9e6bb78366e, type: 3}
   projectilePrefab: {fileID: 11400000, guid: d92e05afc5c748739bac505711ea35b4, type: 3}
 --- !u!1 &1001
 GameObject:

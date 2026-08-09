@@ -384,6 +384,9 @@ MonoBehaviour:
   placementSfx: {fileID: 8300000, guid: 5525eb23f5cdd8f429abe6da675cd6b3, type: 3}
   victorySfx: {fileID: 8300000, guid: 898d828458743d643af75aec2bfa7d1f, type: 3}
   defeatSfx: {fileID: 8300000, guid: 64e5d6960393d9e45ab4501678559257, type: 3}
+  prepareMusic: {fileID: 8300000, guid: 27c9ebfc9c4c20f4b9327f1d6552a20f, type: 3}
+  battleMusic: {fileID: 8300000, guid: ea5fe14c7a908ba46b81025828735b14, type: 3}
+  musicFadeDuration: 0.75
   comPlacementDelay: 0.45
   combatDuration: 10
   shopHideDelayAfterPlacement: 0.2

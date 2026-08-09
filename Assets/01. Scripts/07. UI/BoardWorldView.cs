@@ -170,10 +170,13 @@ namespace NAN2026.Gomoku
                 hoveredUnit.Side == playerSide ? PlayerRangeColor : EnemyRangeColor);
         }
 
-        public void PlayCombatAction(CombatActionEvent actionEvent)
+        public void PlayCombatAction(
+            CombatActionEvent actionEvent,
+            Action resultsPresented = null)
         {
             if (actionEvent == null)
             {
+                resultsPresented?.Invoke();
                 return;
             }
 
@@ -184,7 +187,24 @@ namespace NAN2026.Gomoku
                 unitViews.TryGetValue(actionEvent.Results[0].Target, out firstTarget);
             }
 
+            void PresentResults()
+            {
+                ApplyCombatResults(actionEvent);
+                resultsPresented?.Invoke();
+            }
+
+            if (actorView != null && actorView.UsesProjectile && firstTarget != null)
+            {
+                actorView.PlayAction(firstTarget, actionEvent.Kind, PresentResults);
+                return;
+            }
+
             actorView?.PlayAction(firstTarget, actionEvent.Kind);
+            PresentResults();
+        }
+
+        private void ApplyCombatResults(CombatActionEvent actionEvent)
+        {
             foreach (CombatEffectResult result in actionEvent.Results)
             {
                 if (!unitViews.TryGetValue(result.Target, out UnitView targetView))

@@ -21,6 +21,7 @@ namespace NAN2026.Gomoku
         [SerializeField] private AudioClip arrowAttackSfx;
         [SerializeField] private AudioClip healingMagicSfx;
         [SerializeField] private AudioClip ninjaAttackSfx;
+        [SerializeField] private AudioClip casterMagicSfx;
 
         private SpriteRenderer innerRenderer;
         private SpriteRenderer accentRenderer;
@@ -51,6 +52,10 @@ namespace NAN2026.Gomoku
         public AudioClip ArrowAttackSfx => arrowAttackSfx;
         public AudioClip HealingMagicSfx => healingMagicSfx;
         public AudioClip NinjaAttackSfx => ninjaAttackSfx;
+        public AudioClip CasterMagicSfx => casterMagicSfx;
+        public bool UsesProjectile => isBound
+            && projectilePrefab != null
+            && (role == UnitRole.Marksman || role == UnitRole.Caster);
 
         private void Awake()
         {
@@ -171,8 +176,17 @@ namespace NAN2026.Gomoku
 
         public void PlayAction(UnitView target, UnitActionKind actionKind)
         {
+            PlayAction(target, actionKind, null);
+        }
+
+        public void PlayAction(
+            UnitView target,
+            UnitActionKind actionKind,
+            Action projectileArrived)
+        {
             if (IsDying || preview)
             {
+                projectileArrived?.Invoke();
                 return;
             }
 
@@ -194,7 +208,7 @@ namespace NAN2026.Gomoku
                     break;
                 case UnitRole.Marksman:
                 case UnitRole.Caster:
-                    PlayRangedAction(target, direction, actionKind);
+                    PlayRangedAction(target, direction, actionKind, projectileArrived);
                     break;
                 case UnitRole.Support:
                     PlayHealerAction(actionKind);
@@ -235,7 +249,8 @@ namespace NAN2026.Gomoku
         private void PlayRangedAction(
             UnitView target,
             Vector3 direction,
-            UnitActionKind actionKind)
+            UnitActionKind actionKind,
+            Action projectileArrived)
         {
             Vector3 windupPosition = restLocalPosition - direction * 0.07f;
             motionTween = DOTween.Sequence()
@@ -246,7 +261,7 @@ namespace NAN2026.Gomoku
                 .AppendCallback(() =>
                 {
                     PlayActionSfx(actionKind);
-                    LaunchProjectile(target);
+                    LaunchProjectile(target, projectileArrived);
                 })
                 .Append(transform.DOLocalMove(restLocalPosition, 0.1f).SetEase(Ease.OutQuad))
                 .OnComplete(CompleteMotion);
@@ -306,10 +321,11 @@ namespace NAN2026.Gomoku
                 .OnComplete(CompleteMotion);
         }
 
-        private void LaunchProjectile(UnitView target)
+        private void LaunchProjectile(UnitView target, Action arrived)
         {
             if (target == null || projectilePrefab == null || transform.parent == null)
             {
+                arrived?.Invoke();
                 return;
             }
 
@@ -323,6 +339,8 @@ namespace NAN2026.Gomoku
                     {
                         target.EmitFeedback(new Color(1f, 0.74f, 0.18f), 6);
                     }
+
+                    arrived?.Invoke();
                 });
         }
 
@@ -354,6 +372,13 @@ namespace NAN2026.Gomoku
             {
                 clip = arrowAttackSfx;
                 pitchRange = new Vector2(0.96f, 1.08f);
+            }
+            else if (role == UnitRole.Caster && casterMagicSfx != null)
+            {
+                clip = casterMagicSfx;
+                pitchRange = boundUnitId == "legendary-storm-sage"
+                    ? new Vector2(1.08f, 1.22f)
+                    : new Vector2(0.94f, 1.06f);
             }
             else
             {

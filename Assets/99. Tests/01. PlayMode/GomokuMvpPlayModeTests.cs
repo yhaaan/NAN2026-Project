@@ -44,6 +44,12 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(controller, Is.Not.Null);
             Assert.That(controller.enabled, Is.True);
             Assert.That(controller.PlayerSide, Is.EqualTo(StoneColor.White));
+            Assert.That(controller.PrepareMusic.name, Is.EqualTo("prepare"));
+            Assert.That(controller.BattleMusic.name, Is.EqualTo("battle"));
+            Assert.That(controller.MusicFadeDuration, Is.GreaterThan(0f));
+            Assert.That(SoundManager.Instance.CurrentMusic, Is.EqualTo(controller.PrepareMusic));
+            Assert.That(SoundManager.Instance.IsMusicPlaying, Is.True);
+            Assert.That(SoundManager.Instance.IsMusicLooping, Is.True);
             Assert.That(hud, Is.Not.Null);
             Assert.That(boardView, Is.Not.Null);
             Assert.That(boardView.WorldView, Is.Not.Null);
@@ -58,6 +64,14 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(firstPopSource, Is.Not.Null);
             Assert.That(secondPopSource, Is.Not.Null);
             Assert.That(limitedPopSource, Is.Null);
+            SoundManager.Instance.StopAllSfx();
+            for (int index = 0; index < 5; index++)
+            {
+                AudioSource bypassedSource = SoundManager.Instance.PlaySfx(
+                    boardView.HitSfx[0],
+                    bypassConcurrencyLimit: true);
+                Assert.That(bypassedSource, Is.Not.Null);
+            }
             SoundManager.Instance.StopAllSfx();
             Assert.That(placementCursor, Is.Not.Null);
             Assert.That(shopSlots, Has.Length.EqualTo(ShopState.SlotCount));
@@ -391,6 +405,11 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(boardBounds.max.y, Is.LessThan(turnBounds.min.y));
 
             Assert.That(combatSlider.value, Is.GreaterThan(0f));
+            Assert.That(SoundManager.Instance.CurrentMusic, Is.EqualTo(controller.BattleMusic));
+            Assert.That(SoundManager.Instance.IsMusicPlaying, Is.True);
+            Assert.That(SoundManager.Instance.IsMusicLooping, Is.True);
+            Assert.That(SoundManager.Instance.IsMusicCrossfading, Is.True);
+            Assert.That(CountPlayingMusicSources(), Is.EqualTo(2));
 
             float timeout = 12f;
             while (combatSlider.value < 0.999f && timeout > 0f)
@@ -427,6 +446,11 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(speedText.text, Is.EqualTo("x2"));
             Assert.That(Time.timeScale, Is.EqualTo(1f));
             Assert.That(shopRect.gameObject.activeSelf, Is.False);
+            Assert.That(SoundManager.Instance.CurrentMusic, Is.EqualTo(controller.PrepareMusic));
+            Assert.That(SoundManager.Instance.IsMusicPlaying, Is.True);
+            Assert.That(SoundManager.Instance.IsMusicLooping, Is.True);
+            Assert.That(SoundManager.Instance.IsMusicCrossfading, Is.True);
+            Assert.That(CountPlayingMusicSources(), Is.EqualTo(2));
 
             yield return new WaitForSecondsRealtime(hud.ShopShowDuration * 0.5f);
             yield return new WaitForEndOfFrame();
@@ -470,7 +494,18 @@ namespace NAN2026.Gomoku.Tests
 
             UiButtonSfxFeedback feedback = Object.FindFirstObjectByType<UiButtonSfxFeedback>(
                 FindObjectsInactive.Include);
+            AnimatedTitleScreenController titleController =
+                Object.FindFirstObjectByType<AnimatedTitleScreenController>(
+                    FindObjectsInactive.Include);
             Assert.That(feedback, Is.Not.Null);
+            Assert.That(titleController, Is.Not.Null);
+            Assert.That(titleController.TitleMusic.name, Is.EqualTo("battle"));
+            Assert.That(titleController.MusicFadeDuration, Is.GreaterThan(0f));
+            Assert.That(
+                SoundManager.Instance.CurrentMusic,
+                Is.EqualTo(titleController.TitleMusic));
+            Assert.That(SoundManager.Instance.IsMusicPlaying, Is.True);
+            Assert.That(SoundManager.Instance.IsMusicLooping, Is.True);
             feedback.BindButtons();
             Assert.That(feedback.BoundButtonCount, Is.EqualTo(1));
             Assert.That(feedback.ClickSfx.name, Is.EqualTo("drop_002"));
@@ -481,6 +516,10 @@ namespace NAN2026.Gomoku.Tests
             AudioSource playedSource = FindConfiguredSfxSource();
             Assert.That(playedSource.clip.name, Is.EqualTo("drop_002"));
             Assert.That(playedSource.pitch, Is.InRange(0.92f, 1.08f));
+
+            yield return new WaitForSecondsRealtime(titleController.MusicFadeDuration + 0.05f);
+            Assert.That(SoundManager.Instance.IsMusicCrossfading, Is.False);
+            Assert.That(CountPlayingMusicSources(), Is.EqualTo(1));
         }
 
         [UnityTest]
@@ -519,6 +558,7 @@ namespace NAN2026.Gomoku.Tests
                 Assert.That(prefab.ArrowAttackSfx.name, Is.EqualTo("djartmusic-real-swish_3-304242"));
                 Assert.That(prefab.HealingMagicSfx.name, Is.EqualTo("yodguard-healing-magic-1-378665"));
                 Assert.That(prefab.NinjaAttackSfx.name, Is.EqualTo("dragon-studio-bell-ring-390294"));
+                Assert.That(prefab.CasterMagicSfx.name, Is.EqualTo("universfield-spell-casting-229208"));
             }
 
             var cases = new[]
@@ -527,7 +567,8 @@ namespace NAN2026.Gomoku.Tests
                 new { UnitId = "common-vanguard", Kind = UnitActionKind.Damage, Expected = "pop_", MinPitch = 0.88f, MaxPitch = 1.02f },
                 new { UnitId = "epic-shaman", Kind = UnitActionKind.Damage, Expected = "pop_", MinPitch = 1.05f, MaxPitch = 1.18f },
                 new { UnitId = "epic-sniper", Kind = UnitActionKind.Damage, Expected = "pop_", MinPitch = 1.08f, MaxPitch = 1.22f },
-                new { UnitId = "epic-mage", Kind = UnitActionKind.Damage, Expected = "pop_", MinPitch = 1.2f, MaxPitch = 1.36f },
+                new { UnitId = "epic-mage", Kind = UnitActionKind.Damage, Expected = "universfield-spell-casting-229208", MinPitch = 0.94f, MaxPitch = 1.06f },
+                new { UnitId = "legendary-storm-sage", Kind = UnitActionKind.Damage, Expected = "universfield-spell-casting-229208", MinPitch = 1.08f, MaxPitch = 1.22f },
                 new { UnitId = "common-marksman", Kind = UnitActionKind.Damage, Expected = "djartmusic-real-swish_3-304242", MinPitch = 0.96f, MaxPitch = 1.08f },
                 new { UnitId = "common-healer", Kind = UnitActionKind.Heal, Expected = "yodguard-healing-magic-1-378665", MinPitch = 0.96f, MaxPitch = 1.06f },
                 new { UnitId = "rare-ninja", Kind = UnitActionKind.Damage, Expected = "dragon-studio-bell-ring-390294", MinPitch = 0.98f, MaxPitch = 1.12f }
@@ -574,6 +615,82 @@ namespace NAN2026.Gomoku.Tests
                 Object.Destroy(actor.gameObject);
                 yield return null;
             }
+        }
+
+        [UnityTest]
+        public IEnumerator ProjectileCombatResultsWaitForArrival()
+        {
+            float originalTimeScale = Time.timeScale;
+            Time.timeScale = 1f;
+            UnitCatalogSO catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<UnitCatalogSO>(
+                "Assets/06. Data/00. Units/UnitCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+            UnitDefinitionSO actorDefinition = catalog.Units.Single(
+                definition => definition.UnitId == "common-marksman");
+            UnitDefinitionSO targetDefinition = catalog.Units.Single(
+                definition => definition.UnitId == "common-vanguard");
+
+            var root = new GameObject("ProjectileCombatTimingTest");
+            BoardWorldView worldView = root.AddComponent<BoardWorldView>();
+            UnitView actorView = Object.Instantiate(
+                actorDefinition.Presentation.WorldPrefab,
+                root.transform);
+            UnitView targetView = Object.Instantiate(
+                targetDefinition.Presentation.WorldPrefab,
+                root.transform);
+            actorView.transform.localPosition = Vector3.zero;
+            targetView.transform.localPosition = Vector3.right;
+
+            var actorUnit = new BoardUnit(
+                actorDefinition,
+                StoneColor.White,
+                0,
+                0,
+                2000);
+            var targetUnit = new BoardUnit(
+                targetDefinition,
+                StoneColor.Black,
+                1,
+                0,
+                2001);
+            actorView.Bind(actorUnit, actorDefinition.Presentation);
+            targetView.Bind(targetUnit, targetDefinition.Presentation);
+            Assert.That(actorView.UsesProjectile, Is.True);
+
+            FieldInfo unitViewsField = typeof(BoardWorldView).GetField(
+                "unitViews",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            var unitViews = unitViewsField.GetValue(worldView)
+                as Dictionary<BoardUnit, UnitView>;
+            unitViews.Add(actorUnit, actorView);
+            unitViews.Add(targetUnit, targetView);
+
+            bool resultsPresented = false;
+            var actionEvent = new CombatActionEvent(
+                actorUnit,
+                UnitActionKind.Damage,
+                new[]
+                {
+                    new CombatEffectResult(
+                        targetUnit,
+                        CombatEffectKind.Damage,
+                        1,
+                        false)
+                });
+
+            worldView.PlayCombatAction(actionEvent, () => resultsPresented = true);
+            Assert.That(resultsPresented, Is.False);
+
+            yield return new WaitForSeconds(0.3f);
+            Assert.That(resultsPresented, Is.False);
+
+            yield return new WaitForSeconds(0.3f);
+            Assert.That(resultsPresented, Is.True);
+
+            Object.Destroy(root);
+            SoundManager.Instance.StopAllSfx();
+            Time.timeScale = originalTimeScale;
+            yield return null;
         }
 
         [UnityTest]
@@ -661,6 +778,15 @@ namespace NAN2026.Gomoku.Tests
                     Is.LessThan(1.5f),
                     $"Health UI at ({unit.X}, {unit.Y}) drifted from its unit.");
             }
+        }
+
+        private static int CountPlayingMusicSources()
+        {
+            return SoundManager.Instance
+                .GetComponentsInChildren<AudioSource>()
+                .Count(source =>
+                    source.isPlaying
+                    && source.gameObject.name.StartsWith("Music"));
         }
 
         private static AudioSource FindConfiguredSfxSource()

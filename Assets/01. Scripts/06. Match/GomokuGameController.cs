@@ -21,6 +21,9 @@ namespace NAN2026.Gomoku
         [SerializeField] private AudioClip placementSfx;
         [SerializeField] private AudioClip victorySfx;
         [SerializeField] private AudioClip defeatSfx;
+        [SerializeField] private AudioClip prepareMusic;
+        [SerializeField] private AudioClip battleMusic;
+        [SerializeField, Min(0f)] private float musicFadeDuration = 0.75f;
         [SerializeField, Min(0f)] private float comPlacementDelay = 0.45f;
         [SerializeField, Min(1f)] private float combatDuration = 10f;
         [SerializeField, Min(0f)] private float shopHideDelayAfterPlacement = 0.2f;
@@ -51,6 +54,9 @@ namespace NAN2026.Gomoku
         public float CombatEndDelay => combatEndDelay;
         public AudioClip VictorySfx => victorySfx;
         public AudioClip DefeatSfx => defeatSfx;
+        public AudioClip PrepareMusic => prepareMusic;
+        public AudioClip BattleMusic => battleMusic;
+        public float MusicFadeDuration => musicFadeDuration;
 
         private void Start()
         {
@@ -169,6 +175,7 @@ namespace NAN2026.Gomoku
 
         private void PreparePlacementTurn()
         {
+            SoundManager.Instance.PlayMusic(prepareMusic, musicFadeDuration);
             hud.RefreshBoard();
             hud.HideCombatTimer();
 
@@ -302,6 +309,7 @@ namespace NAN2026.Gomoku
             }
 
             combat.Begin(game);
+            SoundManager.Instance.PlayMusic(battleMusic, musicFadeDuration);
             combatTransitionPending = false;
         }
 
@@ -444,7 +452,8 @@ namespace NAN2026.Gomoku
                 SoundManager.Instance.PlaySfx(
                     placementSfx,
                     finalStone ? 1f : 0.78f,
-                    0.92f + index * 0.09f);
+                    0.92f + index * 0.09f,
+                    bypassConcurrencyLimit: true);
 
                 if (finalStone)
                 {

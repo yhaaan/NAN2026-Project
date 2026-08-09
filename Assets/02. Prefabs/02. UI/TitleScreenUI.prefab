@@ -212,6 +212,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.AnimatedTitleScreenController
   startButton: {fileID: 6625224031387187910}
+  titleMusic: {fileID: 8300000, guid: ea5fe14c7a908ba46b81025828735b14, type: 3}
+  musicFadeDuration: 0.75
 --- !u!1 &6959666579702397828
 GameObject:
   m_ObjectHideFlags: 0

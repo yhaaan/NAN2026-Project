@@ -67,6 +67,14 @@ namespace NAN2026.Gomoku
         public bool IsMusicMuted => musicMuted;
         public bool IsSfxMuted => sfxMuted;
         public int MaxConcurrentSfxPerGroup => maxConcurrentSfxPerGroup;
+        public AudioClip CurrentMusic => activeMusicSource != null
+            ? activeMusicSource.clip
+            : null;
+        public bool IsMusicPlaying => activeMusicSource != null
+            && activeMusicSource.isPlaying;
+        public bool IsMusicLooping => activeMusicSource != null
+            && activeMusicSource.loop;
+        public bool IsMusicCrossfading => musicFadeRoutine != null;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Bootstrap()
@@ -161,7 +169,8 @@ namespace NAN2026.Gomoku
             float volume = 1f,
             float pitch = 1f,
             float spatialBlend = 0f,
-            Vector3 position = default)
+            Vector3 position = default,
+            bool bypassConcurrencyLimit = false)
         {
             if (clip == null)
             {
@@ -169,7 +178,8 @@ namespace NAN2026.Gomoku
             }
 
             string group = GetSfxGroup(clip);
-            if (CountPlayingSfx(group) >= Mathf.Max(1, maxConcurrentSfxPerGroup))
+            if (!bypassConcurrencyLimit
+                && CountPlayingSfx(group) >= Mathf.Max(1, maxConcurrentSfxPerGroup))
             {
                 return null;
             }

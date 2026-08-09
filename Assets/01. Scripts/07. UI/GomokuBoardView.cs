@@ -127,8 +127,17 @@ namespace NAN2026.Gomoku
         public void PlayCombatAction(CombatActionEvent actionEvent)
         {
             EnsureWorldView();
-            worldView?.PlayCombatAction(actionEvent);
+            if (worldView == null)
+            {
+                PresentCombatResults(actionEvent);
+                return;
+            }
 
+            worldView.PlayCombatAction(actionEvent, () => PresentCombatResults(actionEvent));
+        }
+
+        private void PresentCombatResults(CombatActionEvent actionEvent)
+        {
             foreach (CombatEffectResult result in actionEvent.Results)
             {
                 if (result.Kind == CombatEffectKind.Damage)

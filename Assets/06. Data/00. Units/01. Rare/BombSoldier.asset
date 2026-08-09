@@ -26,5 +26,7 @@ MonoBehaviour:
   abilityPower: 40
   abilityRatio: 0
   roleColor: {r: 1, g: 1, b: 1, a: 1}
+  whiteSprite: {fileID: 21300000, guid: fac577b1c86236142a098adc313eb01a, type: 3}
+  blackSprite: {fileID: 21300000, guid: d4978e0ffbe158049b3ae90566e1db13, type: 3}
   action: {fileID: 11400000, guid: 436e4b153da349dbc06df4a6302e5264, type: 2}
   presentation: {fileID: 11400000, guid: bad5b28ca41a4042bd4e6b1da795c9db, type: 2}

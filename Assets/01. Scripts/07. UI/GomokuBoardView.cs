@@ -15,6 +15,7 @@ namespace NAN2026.Gomoku
         [SerializeField] private DamageNumber healPopup;
         [SerializeField] private UnitHealthBarView healthBarPrefab;
         [SerializeField] private Sprite boardSprite;
+        [SerializeField] private Sprite backgroundSprite;
         [SerializeField] private BoardWorldView worldView;
 
         private GomokuGame game;
@@ -340,7 +341,12 @@ namespace NAN2026.Gomoku
                 ownsWorldView = true;
             }
 
-            worldView.Initialize(rectTransform, Camera.main, healthBarPrefab, boardSprite);
+            worldView.Initialize(
+                rectTransform,
+                Camera.main,
+                healthBarPrefab,
+                boardSprite,
+                backgroundSprite);
         }
 
         private static Vector2 Intersection(Rect gridRect, float spacing, int x, int y)

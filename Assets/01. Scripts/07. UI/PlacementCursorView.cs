@@ -183,12 +183,13 @@ namespace NAN2026.Gomoku
 
             EnsureSpritePreview();
             spritePreview.gameObject.SetActive(true);
-            spritePreview.sprite = renderer.sprite;
+            Sprite unitSprite = selectedDefinition.GetSprite(playerSide);
+            spritePreview.sprite = unitSprite != null ? unitSprite : renderer.sprite;
             spritePreview.color = WithAlpha(renderer.color, 0.48f);
             spritePreview.preserveAspect = true;
 
             RectTransform imageRect = spritePreview.rectTransform;
-            Vector2 spriteSize = renderer.sprite.bounds.size;
+            Vector2 spriteSize = spritePreview.sprite.bounds.size;
             float largestDimension = Mathf.Max(spriteSize.x, spriteSize.y);
             float normalization = 1f;
             UnitView prefab = selectedDefinition.Presentation.WorldPrefab;
@@ -217,7 +218,13 @@ namespace NAN2026.Gomoku
             UnitView prefab = selectedDefinition != null
                 ? selectedDefinition.Presentation?.WorldPrefab
                 : null;
-            if (prefab == null || prefab.BodyRenderer == null || prefab.BodyRenderer.sprite == null)
+            if (prefab == null || prefab.BodyRenderer == null)
+            {
+                return false;
+            }
+
+            Sprite unitSprite = selectedDefinition.GetSprite(playerSide);
+            if (unitSprite == null && prefab.BodyRenderer.sprite == null)
             {
                 return false;
             }

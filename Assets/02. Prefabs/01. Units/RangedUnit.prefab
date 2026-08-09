@@ -47,7 +47,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitView
   bodyRenderer: {fileID: 21200000}
   bodyRoot: {fileID: 4001}
-  normalizeSpriteSize: 0
+  normalizeSpriteSize: 1
   visualDiameter: 0.78
   feedbackParticleMaterial: {fileID: 2100000, guid: e823cd5b5d27c0f4b8256e7c12ee3e6d, type: 2}
   vfxRoot: {fileID: 0}

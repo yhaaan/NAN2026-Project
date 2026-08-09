@@ -53,6 +53,9 @@ namespace NAN2026.Gomoku
         [SerializeField, Min(0)] private int abilityPower;
         [SerializeField, Range(0f, 1f)] private float abilityRatio;
         [SerializeField] private Color roleColor = Color.white;
+        [Header("Visuals")]
+        [SerializeField] private Sprite whiteSprite;
+        [SerializeField] private Sprite blackSprite;
         [SerializeField] private UnitActionSO action;
         [SerializeField] private UnitPresentationSO presentation;
 
@@ -71,6 +74,8 @@ namespace NAN2026.Gomoku
         public Color RoleColor => presentation != null ? presentation.AccentColor : roleColor;
         public Color GradeColor => UnitLabels.GradeColor(grade);
         public Color GradeTextColor => UnitLabels.GradeTextColor(grade);
+        public Sprite WhiteSprite => whiteSprite;
+        public Sprite BlackSprite => blackSprite;
         public UnitActionSO Action => action;
         public UnitPresentationSO Presentation => presentation;
         public bool IsSupport => role == UnitRole.Support;
@@ -80,6 +85,11 @@ namespace NAN2026.Gomoku
         public string GradeDisplayName => UnitLabels.GradeName(grade);
         public string RoleDisplayName => UnitLabels.RoleName(role);
         public string AbilityDisplayName => UnitLabels.AbilityName(ability);
+
+        public Sprite GetSprite(StoneColor side)
+        {
+            return side == StoneColor.Black ? blackSprite : whiteSprite;
+        }
     }
 
     public static class UnitLabels

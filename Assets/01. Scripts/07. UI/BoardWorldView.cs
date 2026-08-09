@@ -27,6 +27,8 @@ namespace NAN2026.Gomoku
         private Camera worldCamera;
         private UnitHealthBarView healthBarPrefab;
         private Sprite boardSprite;
+        private Sprite backgroundSprite;
+        private SpriteRenderer screenBackground;
         private Transform unitRoot;
         private Transform overlayRoot;
         private UnitView previewView;
@@ -64,12 +66,14 @@ namespace NAN2026.Gomoku
             RectTransform targetInputRect,
             Camera targetCamera,
             UnitHealthBarView targetHealthBarPrefab,
-            Sprite targetBoardSprite)
+            Sprite targetBoardSprite,
+            Sprite targetBackgroundSprite)
         {
             inputRect = targetInputRect;
             worldCamera = targetCamera;
             healthBarPrefab = targetHealthBarPrefab;
             boardSprite = targetBoardSprite;
+            backgroundSprite = targetBackgroundSprite;
             if (healthBarPrefab != null)
             {
                 missingHealthBarReported = false;
@@ -388,6 +392,18 @@ namespace NAN2026.Gomoku
             }
 
             geometryCreated = true;
+            if (backgroundSprite != null)
+            {
+                screenBackground = CreateRenderer(
+                    transform,
+                    "ScreenBackground",
+                    Color.white,
+                    Vector3.one,
+                    -100,
+                    "Default");
+                screenBackground.sprite = backgroundSprite;
+            }
+
             unitRoot = new GameObject("Units").transform;
             unitRoot.SetParent(transform, false);
             overlayRoot = new GameObject("Overlay").transform;
@@ -484,6 +500,38 @@ namespace NAN2026.Gomoku
                 worldCenter.y - placementImpactOffset,
                 0f);
             transform.localScale = Vector3.one * scale;
+            UpdateBackgroundLayout();
+        }
+
+        private void UpdateBackgroundLayout()
+        {
+            if (screenBackground == null || screenBackground.sprite == null || worldCamera == null)
+            {
+                return;
+            }
+
+            Vector2 spriteSize = screenBackground.sprite.bounds.size;
+            if (spriteSize.x <= Mathf.Epsilon || spriteSize.y <= Mathf.Epsilon)
+            {
+                return;
+            }
+
+            float visibleHeight = worldCamera.orthographicSize * 2f;
+            float visibleWidth = visibleHeight * worldCamera.aspect;
+            float coverScale = Mathf.Max(
+                visibleWidth / spriteSize.x,
+                visibleHeight / spriteSize.y);
+            Vector3 parentScale = transform.lossyScale;
+
+            screenBackground.transform.position = new Vector3(
+                worldCamera.transform.position.x,
+                worldCamera.transform.position.y,
+                0f);
+            screenBackground.transform.rotation = Quaternion.identity;
+            screenBackground.transform.localScale = new Vector3(
+                coverScale / Mathf.Max(Mathf.Abs(parentScale.x), Mathf.Epsilon),
+                coverScale / Mathf.Max(Mathf.Abs(parentScale.y), Mathf.Epsilon),
+                1f);
         }
 
         private UnitView CreateUnitView(BoardUnit unit, bool isPreview)

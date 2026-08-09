@@ -10,7 +10,7 @@ namespace NAN2026.Gomoku
         [SerializeField] private SpriteRenderer bodyRenderer;
         [SerializeField] private Transform bodyRoot;
         [SerializeField] private bool normalizeSpriteSize;
-        [SerializeField, Min(0.01f)] private float visualDiameter = 0.78f;
+        private float visualDiameter = 2f;
         [SerializeField] private Material feedbackParticleMaterial;
         [SerializeField] private Transform vfxRoot;
         [Header("Action VFX")]
@@ -49,6 +49,15 @@ namespace NAN2026.Gomoku
         public void Bind(BoardUnit targetUnit, UnitPresentationSO presentation, bool isPreview = false)
         {
             EnsureVisuals();
+            Sprite unitSprite = targetUnit.Definition.GetSprite(targetUnit.Side);
+            if (unitSprite != null)
+            {
+                bodyRenderer.sprite = unitSprite;
+                bodyRenderer.color = Color.white;
+                authoredBodyColor = Color.white;
+                usesGeneratedStone = false;
+            }
+
             if (isBound)
             {
                 transform.localPosition = restLocalPosition;

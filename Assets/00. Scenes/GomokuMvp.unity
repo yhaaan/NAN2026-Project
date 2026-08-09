@@ -1237,7 +1237,8 @@ MonoBehaviour:
   hitDamagePopup: {fileID: 1106664364040897239, guid: 34ade6417e9cf044b91cfed2d20ce63f, type: 3}
   healPopup: {fileID: 1106664364040897239, guid: aed4bbb273dd4144b98bebbed64e5f55, type: 3}
   healthBarPrefab: {fileID: 11400000, guid: a5d91c3f08e746a4b72f19cd5e638201, type: 3}
-  boardSprite: {fileID: 21300000, guid: 26b8c8f7071841caabff76dd6030e34b, type: 3}
+  boardSprite: {fileID: 21300000, guid: f16f0216e80bbef48898e64b71693e52, type: 3}
+  backgroundSprite: {fileID: 21300000, guid: f6af2ded957d0814583959ab6f192404, type: 3}
   worldView: {fileID: 0}
 --- !u!222 &1828465223
 CanvasRenderer:

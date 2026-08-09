@@ -67,7 +67,7 @@ namespace NAN2026.Gomoku
             var random = new System.Random();
             playerShop = new ShopState(unitCatalog.Units, random);
             comShop = new ShopState(unitCatalog.Units, random);
-            com = new GomokuCom(random);
+            com = new GomokuCom(random, combatDuration);
             combat = new CombatResolver(combatDuration);
             combat.ActionResolved += HandleCombatAction;
             Time.timeScale = 1f;

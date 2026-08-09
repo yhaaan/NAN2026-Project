@@ -21,6 +21,8 @@ namespace NAN2026.Gomoku
 
     public sealed class GomokuCom
     {
+        private const float DefaultCombatDuration = 10f;
+
         private static readonly (int x, int y)[] Directions =
         {
             (1, 0),
@@ -30,10 +32,12 @@ namespace NAN2026.Gomoku
         };
 
         private readonly Random random;
+        private readonly float combatDuration;
 
-        public GomokuCom(Random random)
+        public GomokuCom(Random random, float combatDuration = DefaultCombatDuration)
         {
             this.random = random ?? throw new ArgumentNullException(nameof(random));
+            this.combatDuration = Math.Max(0.1f, combatDuration);
         }
 
         public ComDecision ChooseMove(
@@ -42,6 +46,7 @@ namespace NAN2026.Gomoku
             StoneColor side)
         {
             ComDecision best = new ComDecision(-1, -1, -1, float.MinValue);
+            var tacticalEvaluator = new GomokuComTacticalEvaluator(game, side, combatDuration);
 
             for (int x = 0; x < GomokuGame.BoardSize; x++)
             {
@@ -57,6 +62,7 @@ namespace NAN2026.Gomoku
                     {
                         float score = boardScore
                             + EvaluateUnitPosition(game, offers[offerIndex], x, y, side)
+                            + tacticalEvaluator.Evaluate(offers[offerIndex], x, y)
                             + (float)random.NextDouble() * 0.25f;
 
                         if (score > best.Score)

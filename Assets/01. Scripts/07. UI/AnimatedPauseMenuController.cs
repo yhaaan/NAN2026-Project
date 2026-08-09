@@ -15,6 +15,8 @@ namespace NAN2026.Gomoku
         [SerializeField] private Button resumeButton;
         [SerializeField] private Button restartButton;
         [SerializeField] private Button titleButton;
+        [SerializeField] private Slider masterVolumeSlider;
+        [SerializeField] private Text masterVolumeValueText;
 
         [Header("Menu Animation")]
         [SerializeField, Min(0f)] private float showDuration = 0.22f;
@@ -30,6 +32,7 @@ namespace NAN2026.Gomoku
         public bool IsOpen => menuRoot != null && menuRoot.activeSelf;
         public bool IsAnimating => menuAnimation != null;
         public float MenuAlpha => menuCanvasGroup != null ? menuCanvasGroup.alpha : 0f;
+        public Slider MasterVolumeSlider => masterVolumeSlider;
 
         private void Awake()
         {
@@ -50,6 +53,12 @@ namespace NAN2026.Gomoku
             resumeButton.onClick.AddListener(Resume);
             restartButton.onClick.AddListener(RestartGame);
             titleButton.onClick.AddListener(ReturnToTitle);
+            masterVolumeSlider.minValue = 0f;
+            masterVolumeSlider.maxValue = 1f;
+            masterVolumeSlider.wholeNumbers = false;
+            masterVolumeSlider.SetValueWithoutNotify(SoundManager.Instance.MasterVolume);
+            masterVolumeSlider.onValueChanged.AddListener(HandleMasterVolumeChanged);
+            RefreshMasterVolumeLabel(masterVolumeSlider.value);
         }
 
         private void OnDestroy()
@@ -80,6 +89,11 @@ namespace NAN2026.Gomoku
                 titleButton.onClick.RemoveListener(ReturnToTitle);
             }
 
+            if (masterVolumeSlider != null)
+            {
+                masterVolumeSlider.onValueChanged.RemoveListener(HandleMasterVolumeChanged);
+            }
+
             if (isPausedByThisMenu)
             {
                 Time.timeScale = 1f;
@@ -94,6 +108,8 @@ namespace NAN2026.Gomoku
             }
 
             menuRoot.SetActive(true);
+            masterVolumeSlider.SetValueWithoutNotify(SoundManager.Instance.MasterVolume);
+            RefreshMasterVolumeLabel(masterVolumeSlider.value);
             Time.timeScale = 0f;
             isPausedByThisMenu = true;
             menuCanvasGroup.alpha = 0f;
@@ -187,7 +203,20 @@ namespace NAN2026.Gomoku
                 && settingsButton != null
                 && resumeButton != null
                 && restartButton != null
-                && titleButton != null;
+                && titleButton != null
+                && masterVolumeSlider != null
+                && masterVolumeValueText != null;
+        }
+
+        private void HandleMasterVolumeChanged(float value)
+        {
+            SoundManager.Instance.SetMasterVolume(value);
+            RefreshMasterVolumeLabel(value);
+        }
+
+        private void RefreshMasterVolumeLabel(float value)
+        {
+            masterVolumeValueText.text = $"전체 음량  {Mathf.RoundToInt(value * 100f)}%";
         }
 
         private void SetMenuInteraction(bool interactable)

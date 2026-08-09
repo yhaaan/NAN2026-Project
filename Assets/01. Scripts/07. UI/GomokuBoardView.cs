@@ -14,6 +14,7 @@ namespace NAN2026.Gomoku
         [SerializeField] private DamageNumber hitDamagePopup;
         [SerializeField] private DamageNumber healPopup;
         [SerializeField] private UnitHealthBarView healthBarPrefab;
+        [SerializeField] private AudioClip[] hitSfx = Array.Empty<AudioClip>();
         [SerializeField] private Sprite boardSprite;
         [SerializeField] private Sprite backgroundSprite;
         [SerializeField] private BoardWorldView worldView;
@@ -28,6 +29,7 @@ namespace NAN2026.Gomoku
 
         public BoardPointerState PointerState => pointerState;
         public BoardWorldView WorldView => worldView;
+        public IReadOnlyList<AudioClip> HitSfx => hitSfx ?? Array.Empty<AudioClip>();
         public float PlacementPreviewWorldDiameter => 0.82f;
         public float PlacementPreviewDiameter
         {
@@ -215,6 +217,7 @@ namespace NAN2026.Gomoku
             bool causedByPlayer,
             bool playWorldFeedback)
         {
+            PlayRandomHitSfx();
             GetGridMetrics(out Rect gridRect, out float spacing);
             Vector2 position = Intersection(gridRect, spacing, x, y);
             if (playWorldFeedback)
@@ -227,6 +230,43 @@ namespace NAN2026.Gomoku
             if (popup != null)
             {
                 popup.SpawnGUI(rectTransform, position + Vector2.up * spacing * 0.35f, damage);
+            }
+        }
+
+        private void PlayRandomHitSfx()
+        {
+            if (hitSfx == null || hitSfx.Length == 0)
+            {
+                return;
+            }
+
+            int validClipCount = 0;
+            foreach (AudioClip clip in hitSfx)
+            {
+                if (clip != null)
+                {
+                    validClipCount++;
+                }
+            }
+
+            if (validClipCount == 0)
+            {
+                return;
+            }
+
+            int selectedClipIndex = UnityEngine.Random.Range(0, validClipCount);
+            foreach (AudioClip clip in hitSfx)
+            {
+                if (clip == null)
+                {
+                    continue;
+                }
+
+                if (selectedClipIndex-- == 0)
+                {
+                    SoundManager.Instance.PlaySfx(clip);
+                    return;
+                }
             }
         }
 

@@ -51,6 +51,14 @@ MonoBehaviour:
   visualDiameter: 0.78
   feedbackParticleMaterial: {fileID: 2100000, guid: e823cd5b5d27c0f4b8256e7c12ee3e6d, type: 2}
   vfxRoot: {fileID: 0}
+  attackPopSfx:
+  - {fileID: 8300000, guid: 2dd3ddc77e65dd8438ada5c97d5b9477, type: 3}
+  - {fileID: 8300000, guid: e0d4c7951d8100e41954b167f82d112f, type: 3}
+  - {fileID: 8300000, guid: 63ae8b630e35ad745bb94578f95959e8, type: 3}
+  - {fileID: 8300000, guid: 3e83c012bb29aac499fdc877bf75b174, type: 3}
+  arrowAttackSfx: {fileID: 8300000, guid: 3ce406023d0fed94ebf13273a9007d8e, type: 3}
+  healingMagicSfx: {fileID: 8300000, guid: ee07fe89abd21d94891ff93b013cc0dd, type: 3}
+  ninjaAttackSfx: {fileID: 8300000, guid: 8386aadcc77fcb541927cd15423fa193, type: 3}
 --- !u!1 &1001
 GameObject:
   m_ObjectHideFlags: 0

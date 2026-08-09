@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
 
@@ -15,6 +16,11 @@ namespace NAN2026.Gomoku
         [SerializeField] private Transform vfxRoot;
         [Header("Action VFX")]
         [SerializeField] private ProjectileVfxView projectilePrefab;
+        [Header("Action Audio")]
+        [SerializeField] private AudioClip[] attackPopSfx = Array.Empty<AudioClip>();
+        [SerializeField] private AudioClip arrowAttackSfx;
+        [SerializeField] private AudioClip healingMagicSfx;
+        [SerializeField] private AudioClip ninjaAttackSfx;
 
         private SpriteRenderer innerRenderer;
         private SpriteRenderer accentRenderer;
@@ -33,6 +39,7 @@ namespace NAN2026.Gomoku
         private bool usesGeneratedStone;
         private StoneColor boundSide;
         private UnitRole role;
+        private string boundUnitId = string.Empty;
         private static Material runtimeParticleMaterial;
 
         public bool IsDying { get; private set; }
@@ -40,6 +47,10 @@ namespace NAN2026.Gomoku
         public Transform BodyRoot => bodyRoot;
         public bool NormalizeSpriteSize => normalizeSpriteSize;
         public float VisualDiameter => visualDiameter;
+        public IReadOnlyList<AudioClip> AttackPopSfx => attackPopSfx ?? Array.Empty<AudioClip>();
+        public AudioClip ArrowAttackSfx => arrowAttackSfx;
+        public AudioClip HealingMagicSfx => healingMagicSfx;
+        public AudioClip NinjaAttackSfx => ninjaAttackSfx;
 
         private void Awake()
         {
@@ -68,6 +79,7 @@ namespace NAN2026.Gomoku
             accentColor = presentation != null ? presentation.AccentColor : targetUnit.Definition.RoleColor;
             boundSide = targetUnit.Side;
             role = targetUnit.Definition.Role;
+            boundUnitId = targetUnit.Definition.UnitId;
             restLocalPosition = transform.localPosition;
             transform.localScale = Vector3.one;
             ApplyBodyScale();
@@ -154,6 +166,11 @@ namespace NAN2026.Gomoku
 
         public void PlayAction(UnitView target)
         {
+            PlayAction(target, UnitActionKind.Damage);
+        }
+
+        public void PlayAction(UnitView target, UnitActionKind actionKind)
+        {
             if (IsDying || preview)
             {
                 return;
@@ -166,32 +183,35 @@ namespace NAN2026.Gomoku
 
             if (!isBound)
             {
-                PlayDefaultAction(direction);
+                PlayDefaultAction(direction, actionKind);
                 return;
             }
 
             switch (role)
             {
                 case UnitRole.Vanguard:
-                    PlayMeleeAction(target, direction);
+                    PlayMeleeAction(target, direction, actionKind);
                     break;
                 case UnitRole.Marksman:
                 case UnitRole.Caster:
-                    PlayRangedAction(target, direction);
+                    PlayRangedAction(target, direction, actionKind);
                     break;
                 case UnitRole.Support:
-                    PlayHealerAction();
+                    PlayHealerAction(actionKind);
                     break;
                 case UnitRole.Guardian:
-                    PlayTankAction(target, direction);
+                    PlayTankAction(target, direction, actionKind);
                     break;
                 default:
-                    PlayDefaultAction(direction);
+                    PlayDefaultAction(direction, actionKind);
                     break;
             }
         }
 
-        private void PlayMeleeAction(UnitView target, Vector3 direction)
+        private void PlayMeleeAction(
+            UnitView target,
+            Vector3 direction,
+            UnitActionKind actionKind)
         {
             Vector3 windupPosition = restLocalPosition - direction * 0.06f;
             Vector3 strikePosition = restLocalPosition + direction * 0.34f;
@@ -199,16 +219,23 @@ namespace NAN2026.Gomoku
                 .SetTarget(this)
                 .Append(transform.DOLocalMove(windupPosition, 0.07f).SetEase(Ease.OutQuad))
                 .Append(transform.DOLocalMove(strikePosition, 0.08f).SetEase(Ease.InQuad))
-                .AppendCallback(() => PlayImpactPulse(
-                    TargetPosition(target, strikePosition),
-                    new Color(1f, 0.42f, 0.1f, 0.85f),
-                    new Vector3(0.46f, 0.24f, 1f),
-                    0.16f))
+                .AppendCallback(() =>
+                {
+                    PlayActionSfx(actionKind);
+                    PlayImpactPulse(
+                        TargetPosition(target, strikePosition),
+                        new Color(1f, 0.42f, 0.1f, 0.85f),
+                        new Vector3(0.46f, 0.24f, 1f),
+                        0.16f);
+                })
                 .Append(transform.DOLocalMove(restLocalPosition, 0.11f).SetEase(Ease.OutQuad))
                 .OnComplete(CompleteMotion);
         }
 
-        private void PlayRangedAction(UnitView target, Vector3 direction)
+        private void PlayRangedAction(
+            UnitView target,
+            Vector3 direction,
+            UnitActionKind actionKind)
         {
             Vector3 windupPosition = restLocalPosition - direction * 0.07f;
             motionTween = DOTween.Sequence()
@@ -216,25 +243,36 @@ namespace NAN2026.Gomoku
                 .Append(transform.DOLocalMove(windupPosition, 0.1f).SetEase(Ease.OutQuad))
                 .Append(transform.DOLocalMove(restLocalPosition + direction * 0.025f, 0.045f)
                     .SetEase(Ease.OutQuad))
-                .AppendCallback(() => LaunchProjectile(target))
+                .AppendCallback(() =>
+                {
+                    PlayActionSfx(actionKind);
+                    LaunchProjectile(target);
+                })
                 .Append(transform.DOLocalMove(restLocalPosition, 0.1f).SetEase(Ease.OutQuad))
                 .OnComplete(CompleteMotion);
         }
 
-        private void PlayHealerAction()
+        private void PlayHealerAction(UnitActionKind actionKind)
         {
             motionTween = DOTween.Sequence()
                 .SetTarget(this)
                 .Append(transform.DOLocalMove(restLocalPosition + Vector3.up * 0.08f, 0.12f)
                     .SetEase(Ease.OutQuad))
                 .Join(transform.DOScale(1.1f, 0.12f).SetEase(Ease.OutQuad))
-                .AppendCallback(PlayHealWave)
+                .AppendCallback(() =>
+                {
+                    PlayActionSfx(actionKind);
+                    PlayHealWave();
+                })
                 .Append(transform.DOLocalMove(restLocalPosition, 0.18f).SetEase(Ease.InOutQuad))
                 .Join(transform.DOScale(Vector3.one, 0.18f).SetEase(Ease.InOutQuad))
                 .OnComplete(CompleteMotion);
         }
 
-        private void PlayTankAction(UnitView target, Vector3 direction)
+        private void PlayTankAction(
+            UnitView target,
+            Vector3 direction,
+            UnitActionKind actionKind)
         {
             Vector3 strikePosition = restLocalPosition + direction * 0.14f;
             motionTween = DOTween.Sequence()
@@ -243,21 +281,26 @@ namespace NAN2026.Gomoku
                     .SetEase(Ease.InQuad))
                 .Append(transform.DOLocalMove(strikePosition, 0.13f).SetEase(Ease.OutQuad))
                 .Join(transform.DOScale(new Vector3(1.08f, 1f, 1f), 0.13f))
-                .AppendCallback(() => PlayImpactPulse(
-                    TargetPosition(target, strikePosition),
-                    new Color(0.82f, 0.72f, 0.48f, 0.8f),
-                    new Vector3(0.54f, 0.34f, 1f),
-                    0.24f))
+                .AppendCallback(() =>
+                {
+                    PlayActionSfx(actionKind);
+                    PlayImpactPulse(
+                        TargetPosition(target, strikePosition),
+                        new Color(0.82f, 0.72f, 0.48f, 0.8f),
+                        new Vector3(0.54f, 0.34f, 1f),
+                        0.24f);
+                })
                 .Append(transform.DOLocalMove(restLocalPosition, 0.24f).SetEase(Ease.OutSine))
                 .Join(transform.DOScale(Vector3.one, 0.24f).SetEase(Ease.OutSine))
                 .OnComplete(CompleteMotion);
         }
 
-        private void PlayDefaultAction(Vector3 direction)
+        private void PlayDefaultAction(Vector3 direction, UnitActionKind actionKind)
         {
             Vector3 actionPosition = restLocalPosition + direction * 0.18f;
             motionTween = DOTween.Sequence()
                 .SetTarget(this)
+                .AppendCallback(() => PlayActionSfx(actionKind))
                 .Append(transform.DOLocalMove(actionPosition, 0.11f).SetEase(Ease.OutQuad))
                 .Append(transform.DOLocalMove(restLocalPosition, 0.11f).SetEase(Ease.InQuad))
                 .OnComplete(CompleteMotion);
@@ -290,6 +333,93 @@ namespace NAN2026.Gomoku
                 new Color(0.28f, 1f, 0.52f, 0.72f),
                 new Vector3(1.65f, 1.65f, 1f),
                 0.36f);
+        }
+
+        private void PlayActionSfx(UnitActionKind actionKind)
+        {
+            AudioClip clip;
+            Vector2 pitchRange;
+
+            if (actionKind == UnitActionKind.Heal && healingMagicSfx != null)
+            {
+                clip = healingMagicSfx;
+                pitchRange = new Vector2(0.96f, 1.06f);
+            }
+            else if (boundUnitId == "rare-ninja" && ninjaAttackSfx != null)
+            {
+                clip = ninjaAttackSfx;
+                pitchRange = new Vector2(0.98f, 1.12f);
+            }
+            else if (boundUnitId == "common-marksman" && arrowAttackSfx != null)
+            {
+                clip = arrowAttackSfx;
+                pitchRange = new Vector2(0.96f, 1.08f);
+            }
+            else
+            {
+                clip = GetRandomAttackPop();
+                pitchRange = GetAttackPitchRange(role);
+            }
+
+            if (clip != null)
+            {
+                SoundManager.Instance.PlaySfx(
+                    clip,
+                    1f,
+                    UnityEngine.Random.Range(pitchRange.x, pitchRange.y));
+            }
+        }
+
+        private AudioClip GetRandomAttackPop()
+        {
+            if (attackPopSfx == null || attackPopSfx.Length == 0)
+            {
+                return null;
+            }
+
+            int validClipCount = 0;
+            foreach (AudioClip clip in attackPopSfx)
+            {
+                if (clip != null)
+                {
+                    validClipCount++;
+                }
+            }
+
+            if (validClipCount == 0)
+            {
+                return null;
+            }
+
+            int selectedClipIndex = UnityEngine.Random.Range(0, validClipCount);
+            foreach (AudioClip clip in attackPopSfx)
+            {
+                if (clip != null && selectedClipIndex-- == 0)
+                {
+                    return clip;
+                }
+            }
+
+            return null;
+        }
+
+        public static Vector2 GetAttackPitchRange(UnitRole unitRole)
+        {
+            switch (unitRole)
+            {
+                case UnitRole.Guardian:
+                    return new Vector2(0.72f, 0.86f);
+                case UnitRole.Vanguard:
+                    return new Vector2(0.88f, 1.02f);
+                case UnitRole.Support:
+                    return new Vector2(1.05f, 1.18f);
+                case UnitRole.Marksman:
+                    return new Vector2(1.08f, 1.22f);
+                case UnitRole.Caster:
+                    return new Vector2(1.2f, 1.36f);
+                default:
+                    return new Vector2(0.95f, 1.05f);
+            }
         }
 
         private void PlayImpactPulse(

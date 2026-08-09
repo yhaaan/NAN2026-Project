@@ -16,6 +16,8 @@ namespace NAN2026.Gomoku
         [SerializeField] private Image roleColor;
         [SerializeField] private Text nameText;
         [SerializeField] private Text statsText;
+        [SerializeField] private AudioClip clickSfx;
+        [SerializeField] private AudioClip hoverSfx;
 
         private int slotIndex;
         private Action<int> onSelected;
@@ -28,13 +30,15 @@ namespace NAN2026.Gomoku
         private bool isHovered;
 
         public bool IsSelected { get; private set; }
+        public AudioClip ClickSfx => clickSfx;
+        public AudioClip HoverSfx => hoverSfx;
 
         public void Initialize(int index, Action<int> selectionHandler)
         {
             slotIndex = index;
             onSelected = selectionHandler;
             button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => onSelected?.Invoke(slotIndex));
+            button.onClick.AddListener(HandleClick);
             ConfigurePresentation();
         }
 
@@ -73,6 +77,11 @@ namespace NAN2026.Gomoku
 
         public void OnPointerEnter(PointerEventData eventData)
         {
+            if (!isHovered)
+            {
+                SoundManager.Instance.PlaySfx(hoverSfx);
+            }
+
             isHovered = true;
             RefreshOutline();
         }
@@ -81,6 +90,12 @@ namespace NAN2026.Gomoku
         {
             isHovered = false;
             RefreshOutline();
+        }
+
+        private void HandleClick()
+        {
+            SoundManager.Instance.PlaySfx(clickSfx);
+            onSelected?.Invoke(slotIndex);
         }
 
         private void ConfigurePresentation()

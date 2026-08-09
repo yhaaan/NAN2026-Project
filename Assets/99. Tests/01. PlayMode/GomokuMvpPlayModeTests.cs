@@ -218,11 +218,11 @@ namespace NAN2026.Gomoku.Tests
                 Assert.That(unitLabel.color.grayscale, Is.LessThan(0.2f));
                 Assert.That(statsLabel.color.grayscale, Is.LessThan(0.35f));
 
-                bool hasRole = unitLabel.text.Contains("수호군")
-                    || unitLabel.text.Contains("돌격군")
-                    || unitLabel.text.Contains("사격군")
-                    || unitLabel.text.Contains("술사")
-                    || unitLabel.text.Contains("지원군");
+                bool hasRole = unitLabel.text.Contains("탱커")
+                    || unitLabel.text.Contains("전사")
+                    || unitLabel.text.Contains("원거리 딜러")
+                    || unitLabel.text.Contains("마법")
+                    || unitLabel.text.Contains("보조");
                 Assert.That(hasRole, Is.True);
             }
             Assert.That(boardView.WorldView.ActiveUnitViewCount, Is.EqualTo(1));

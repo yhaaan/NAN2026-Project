@@ -109,11 +109,11 @@ namespace NAN2026.Gomoku
         {
             switch (role)
             {
-                case UnitRole.Guardian: return "수호군";
-                case UnitRole.Vanguard: return "돌격군";
-                case UnitRole.Marksman: return "사격군";
-                case UnitRole.Caster: return "술사";
-                default: return "지원군";
+                case UnitRole.Guardian: return "탱커";
+                case UnitRole.Vanguard: return "전사";
+                case UnitRole.Marksman: return "원거리 딜러";
+                case UnitRole.Caster: return "마법";
+                default: return "보조";
             }
         }
 

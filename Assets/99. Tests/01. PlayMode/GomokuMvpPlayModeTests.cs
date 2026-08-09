@@ -528,6 +528,50 @@ namespace NAN2026.Gomoku.Tests
         }
 
         [UnityTest]
+        public IEnumerator SceneTransitionFadeDoesNotSkipAfterLongFrame()
+        {
+            AsyncOperation load = SceneManager.LoadSceneAsync("Title", LoadSceneMode.Single);
+            while (!load.isDone)
+            {
+                yield return null;
+            }
+
+            SceneTransitionController transition =
+                Object.FindFirstObjectByType<SceneTransitionController>(
+                    FindObjectsInactive.Include);
+            Assert.That(transition, Is.Not.Null);
+
+            while (transition.IsTransitioning)
+            {
+                yield return null;
+            }
+
+            System.Threading.Thread.Sleep(800);
+            yield return null;
+            Assert.That(Time.unscaledDeltaTime, Is.GreaterThan(0.4f));
+
+            SceneTransitionController.LoadMainGame();
+            Assert.That(transition.Alpha, Is.LessThan(1f));
+
+            while (SceneManager.GetActiveScene().name != SceneTransitionController.MainGameSceneName)
+            {
+                yield return null;
+            }
+
+            Assert.That(transition.Alpha, Is.EqualTo(1f).Within(0.01f));
+
+            yield return new WaitForSecondsRealtime(0.1f);
+            Assert.That(transition.Alpha, Is.GreaterThan(0f).And.LessThan(1f));
+
+            while (transition.IsTransitioning)
+            {
+                yield return null;
+            }
+
+            Assert.That(transition.Alpha, Is.EqualTo(0f).Within(0.01f));
+        }
+
+        [UnityTest]
         public IEnumerator UnitActionAudioUsesRolePitchAndSpecialClips()
         {
             AsyncOperation load = SceneManager.LoadSceneAsync("GomokuMvp", LoadSceneMode.Single);

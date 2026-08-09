@@ -10,6 +10,8 @@ namespace NAN2026.Gomoku
         public const string TitleSceneName = "Title";
         public const string MainGameSceneName = "GomokuMvp";
 
+        private const float MaxFadeFrameDelta = 1f / 30f;
+
         [SerializeField] private CanvasGroup canvasGroup;
         [SerializeField, Min(0f)] private float fadeOutDuration = 0.28f;
         [SerializeField, Min(0f)] private float fadeInDuration = 0.32f;
@@ -128,11 +130,14 @@ namespace NAN2026.Gomoku
             float elapsed = 0f;
             while (elapsed < duration)
             {
-                elapsed += Time.unscaledDeltaTime;
+                // Scene activation can make the current frame's delta exceed the
+                // entire fade duration. Wait for a rendered frame and cap hitches
+                // so a first-time scene load cannot finish the fade in one step.
+                yield return null;
+                elapsed += Mathf.Min(Time.unscaledDeltaTime, MaxFadeFrameDelta);
                 float progress = Mathf.Clamp01(elapsed / duration);
                 float eased = Mathf.SmoothStep(0f, 1f, progress);
                 canvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, eased);
-                yield return null;
             }
 
             canvasGroup.alpha = targetAlpha;

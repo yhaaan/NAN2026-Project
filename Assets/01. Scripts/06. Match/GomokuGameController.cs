@@ -19,6 +19,8 @@ namespace NAN2026.Gomoku
         [SerializeField] private GomokuHud hud;
         [SerializeField] private CameraEffectController cameraEffects;
         [SerializeField] private AudioClip placementSfx;
+        [SerializeField] private AudioClip victorySfx;
+        [SerializeField] private AudioClip defeatSfx;
         [SerializeField, Min(0f)] private float comPlacementDelay = 0.45f;
         [SerializeField, Min(1f)] private float combatDuration = 10f;
         [SerializeField, Min(0f)] private float shopHideDelayAfterPlacement = 0.2f;
@@ -47,6 +49,8 @@ namespace NAN2026.Gomoku
         public StoneColor PlayerSide => playerSide;
         public float ShopHideDelayAfterPlacement => shopHideDelayAfterPlacement;
         public float CombatEndDelay => combatEndDelay;
+        public AudioClip VictorySfx => victorySfx;
+        public AudioClip DefeatSfx => defeatSfx;
 
         private void Start()
         {
@@ -460,22 +464,26 @@ namespace NAN2026.Gomoku
                 gameTitle,
                 $"Player {playerWins} : {comWins} COM",
                 buttonLabel);
-            SoundManager.Instance.PlaySfx(placementSfx, 1f, 1.38f);
+            if (!matchFinished)
+            {
+                PlayResultSfx(playerWon);
+            }
 
             if (matchFinished)
             {
                 yield return new WaitForSecondsRealtime(MatchTitleDelay);
                 hud.SetResultTitle(finalTitle);
-                SoundManager.Instance.PlaySfx(placementSfx, 1f, 1.52f);
-                if (playerWon)
-                {
-                    SoundManager.Instance.PlaySfx(placementSfx, 0.72f, 1.76f);
-                }
-
+                PlayResultSfx(playerWon);
                 cameraEffects?.PlayScreenShake(playerWon ? 0.04f : 0.025f, 0.18f);
             }
 
             victoryRoutine = null;
+        }
+
+        private void PlayResultSfx(bool playerWon)
+        {
+            AudioClip resultSfx = playerWon ? victorySfx : defeatSfx;
+            SoundManager.Instance.PlaySfx(resultSfx);
         }
 
         private void HandleContinue()

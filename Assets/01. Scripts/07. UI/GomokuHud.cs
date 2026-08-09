@@ -60,6 +60,8 @@ namespace NAN2026.Gomoku
             : null;
         public float ShopShowDuration => shopShowDuration;
         public float ShopHideDuration => shopHideDuration;
+        public Button CombatSpeedButton => combatSpeedButton;
+        public int CombatSpeed => combatSpeed;
 
         private void Awake()
         {

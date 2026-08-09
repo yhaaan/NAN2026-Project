@@ -161,6 +161,8 @@ MonoBehaviour:
   roleColor: {fileID: 8298968217571424155}
   nameText: {fileID: 8307020117281526144}
   statsText: {fileID: 2808015094776978773}
+  clickSfx: {fileID: 8300000, guid: 8f9e1364349c8b74a9358e3dbc1efb43, type: 3}
+  hoverSfx: {fileID: 8300000, guid: c4ed88b3d9c83e84c93cd3a2d7459e0e, type: 3}
 --- !u!1 &619997723307572485
 GameObject:
   m_ObjectHideFlags: 0

@@ -184,7 +184,7 @@ namespace NAN2026.Gomoku
                 unitViews.TryGetValue(actionEvent.Results[0].Target, out firstTarget);
             }
 
-            actorView?.PlayAction(firstTarget);
+            actorView?.PlayAction(firstTarget, actionEvent.Kind);
             foreach (CombatEffectResult result in actionEvent.Results)
             {
                 if (!unitViews.TryGetValue(result.Target, out UnitView targetView))

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -34,6 +35,11 @@ namespace NAN2026.Gomoku.Tests
                 FindObjectsInactive.Include);
             TurnStatusView turnStatusView = Object.FindFirstObjectByType<TurnStatusView>(
                 FindObjectsInactive.Include);
+            AnimatedPauseMenuController pauseMenu = Object.FindFirstObjectByType<AnimatedPauseMenuController>(
+                FindObjectsInactive.Include);
+
+            UiButtonSfxFeedback uiButtonFeedback = Object.FindFirstObjectByType<UiButtonSfxFeedback>(
+                FindObjectsInactive.Include);
 
             Assert.That(controller, Is.Not.Null);
             Assert.That(controller.enabled, Is.True);
@@ -41,12 +47,54 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(hud, Is.Not.Null);
             Assert.That(boardView, Is.Not.Null);
             Assert.That(boardView.WorldView, Is.Not.Null);
+            Assert.That(boardView.HitSfx.Count, Is.EqualTo(4));
+            Assert.That(boardView.HitSfx.Select(clip => clip != null ? clip.name : string.Empty),
+                Is.EquivalentTo(new[] { "pop_1", "pop_2", "pop_3", "pop_4" }));
+            Assert.That(SoundManager.Instance.MaxConcurrentSfxPerGroup, Is.EqualTo(2));
+            SoundManager.Instance.StopAllSfx();
+            AudioSource firstPopSource = SoundManager.Instance.PlaySfx(boardView.HitSfx[0]);
+            AudioSource secondPopSource = SoundManager.Instance.PlaySfx(boardView.HitSfx[1]);
+            AudioSource limitedPopSource = SoundManager.Instance.PlaySfx(boardView.HitSfx[2]);
+            Assert.That(firstPopSource, Is.Not.Null);
+            Assert.That(secondPopSource, Is.Not.Null);
+            Assert.That(limitedPopSource, Is.Null);
+            SoundManager.Instance.StopAllSfx();
             Assert.That(placementCursor, Is.Not.Null);
             Assert.That(shopSlots, Has.Length.EqualTo(ShopState.SlotCount));
 
             Assert.That(infoPanel, Is.Not.Null);
             Assert.That(infoPanel.IsVisible, Is.False);
             Assert.That(turnStatusView, Is.Not.Null);
+            Assert.That(pauseMenu, Is.Not.Null);
+            Assert.That(pauseMenu.MasterVolumeSlider, Is.Not.Null);
+
+            Assert.That(uiButtonFeedback, Is.Not.Null);
+            Assert.That(uiButtonFeedback.ClickSfx.name, Is.EqualTo("drop_002"));
+            Assert.That(uiButtonFeedback.PitchRange, Is.EqualTo(new Vector2(0.92f, 1.08f)));
+            uiButtonFeedback.BindButtons();
+            Assert.That(uiButtonFeedback.BoundButtonCount, Is.EqualTo(7));
+            Assert.That(UiButtonSfxFeedback.CombatSpeedPitch(1), Is.EqualTo(0.84f).Within(0.001f));
+            Assert.That(UiButtonSfxFeedback.CombatSpeedPitch(2), Is.EqualTo(0.92f).Within(0.001f));
+            Assert.That(UiButtonSfxFeedback.CombatSpeedPitch(3), Is.EqualTo(1f).Within(0.001f));
+            Assert.That(UiButtonSfxFeedback.CombatSpeedPitch(4), Is.EqualTo(1.08f).Within(0.001f));
+            Assert.That(UiButtonSfxFeedback.CombatSpeedPitch(5), Is.EqualTo(1.16f).Within(0.001f));
+            Assert.That(controller.VictorySfx.name, Is.EqualTo("harp strum 5"));
+            Assert.That(controller.DefeatSfx.name, Is.EqualTo("wind down 2"));
+
+            SoundManager.Instance.StopAllSfx();
+            InvokePrivate(controller, "PlayResultSfx", true);
+            AudioSource victorySource = FindConfiguredSfxSource();
+            Assert.That(victorySource.clip.name, Is.EqualTo("harp strum 5"));
+            SoundManager.Instance.StopAllSfx();
+            InvokePrivate(controller, "PlayResultSfx", false);
+            AudioSource defeatSource = FindConfiguredSfxSource();
+            Assert.That(defeatSource.clip.name, Is.EqualTo("wind down 2"));
+            SoundManager.Instance.StopAllSfx();
+
+            float initialMasterVolume = SoundManager.Instance.MasterVolume;
+            pauseMenu.MasterVolumeSlider.value = 0.37f;
+            Assert.That(SoundManager.Instance.MasterVolume, Is.EqualTo(0.37f).Within(0.001f));
+            pauseMenu.MasterVolumeSlider.value = initialMasterVolume;
 
             Text turnText = turnStatusView.transform.Find("TurnText").GetComponent<Text>();
             Text phaseText = turnStatusView.transform.Find("PhaseText").GetComponent<Text>();
@@ -62,8 +110,14 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(speedButtonRoot.gameObject.activeSelf, Is.True);
             Assert.That(speedText.text, Is.EqualTo("x1"));
 
+            SoundManager.Instance.StopAllSfx();
             speedButton.onClick.Invoke();
             Assert.That(speedText.text, Is.EqualTo("x2"));
+            AudioSource buttonSource = FindConfiguredSfxSource();
+            Assert.That(buttonSource.clip.name, Is.EqualTo("drop_002"));
+            Assert.That(
+                buttonSource.pitch,
+                Is.EqualTo(UiButtonSfxFeedback.CombatSpeedPitch(2)).Within(0.001f));
             speedButton.onClick.Invoke();
             Assert.That(speedText.text, Is.EqualTo("x3"));
             speedButton.onClick.Invoke();
@@ -87,6 +141,10 @@ namespace NAN2026.Gomoku.Tests
             boardView.ShowDamage(7, 7, 25, true);
             yield return null;
             Assert.That(FindDirectChild(boardView.transform, "AttackDamagePopup(Clone)"), Is.Not.Null);
+            Assert.That(
+                SoundManager.Instance.GetComponentsInChildren<AudioSource>()
+                    .Any(source => source.clip != null && source.clip.name.StartsWith("pop_")),
+                Is.True);
 
             boardView.ShowDamage(7, 7, 25, false);
             yield return null;
@@ -101,6 +159,10 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(UnitLabels.GradeTextColor(UnitGrade.Common), Is.EqualTo(Color.black));
             foreach (ShopSlotView shopSlot in shopSlots)
             {
+                Assert.That(shopSlot.ClickSfx, Is.Not.Null);
+                Assert.That(shopSlot.ClickSfx.name, Is.EqualTo("card_draw_3"));
+                Assert.That(shopSlot.HoverSfx, Is.Not.Null);
+                Assert.That(shopSlot.HoverSfx.name, Is.EqualTo("drop_002"));
                 Text unitLabel = shopSlot.transform.Find("Name").GetComponent<Text>();
                 Text statsLabel = shopSlot.transform.Find("Stats").GetComponent<Text>();
                 Image cardBackground = shopSlot.GetComponent<Image>();
@@ -395,6 +457,126 @@ namespace NAN2026.Gomoku.Tests
         }
 
         [UnityTest]
+        public IEnumerator TitleSceneButtonUsesSharedClickFeedback()
+        {
+            AsyncOperation load = SceneManager.LoadSceneAsync("Title", LoadSceneMode.Single);
+            while (!load.isDone)
+            {
+                yield return null;
+            }
+
+            yield return null;
+            yield return null;
+
+            UiButtonSfxFeedback feedback = Object.FindFirstObjectByType<UiButtonSfxFeedback>(
+                FindObjectsInactive.Include);
+            Assert.That(feedback, Is.Not.Null);
+            feedback.BindButtons();
+            Assert.That(feedback.BoundButtonCount, Is.EqualTo(1));
+            Assert.That(feedback.ClickSfx.name, Is.EqualTo("drop_002"));
+            Assert.That(feedback.PitchRange, Is.EqualTo(new Vector2(0.92f, 1.08f)));
+
+            SoundManager.Instance.StopAllSfx();
+            feedback.PlayFeedback();
+            AudioSource playedSource = FindConfiguredSfxSource();
+            Assert.That(playedSource.clip.name, Is.EqualTo("drop_002"));
+            Assert.That(playedSource.pitch, Is.InRange(0.92f, 1.08f));
+        }
+
+        [UnityTest]
+        public IEnumerator UnitActionAudioUsesRolePitchAndSpecialClips()
+        {
+            AsyncOperation load = SceneManager.LoadSceneAsync("GomokuMvp", LoadSceneMode.Single);
+            while (!load.isDone)
+            {
+                yield return null;
+            }
+
+            yield return null;
+
+            GomokuGameController controller = Object.FindFirstObjectByType<GomokuGameController>();
+            Assert.That(controller, Is.Not.Null);
+            controller.StopAllCoroutines();
+            controller.enabled = false;
+
+            FieldInfo catalogField = typeof(GomokuGameController).GetField(
+                "unitCatalog",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            UnitCatalogSO catalog = catalogField.GetValue(controller) as UnitCatalogSO;
+            Assert.That(catalog, Is.Not.Null);
+
+            UnitView[] prefabs = catalog.Units
+                .Select(definition => definition.Presentation.WorldPrefab)
+                .Distinct()
+                .ToArray();
+            Assert.That(prefabs, Has.Length.EqualTo(4));
+            foreach (UnitView prefab in prefabs)
+            {
+                Assert.That(prefab.AttackPopSfx.Count, Is.EqualTo(4));
+                Assert.That(
+                    prefab.AttackPopSfx.Select(clip => clip != null ? clip.name : string.Empty),
+                    Is.EquivalentTo(new[] { "pop_1", "pop_2", "pop_3", "pop_4" }));
+                Assert.That(prefab.ArrowAttackSfx.name, Is.EqualTo("djartmusic-real-swish_3-304242"));
+                Assert.That(prefab.HealingMagicSfx.name, Is.EqualTo("yodguard-healing-magic-1-378665"));
+                Assert.That(prefab.NinjaAttackSfx.name, Is.EqualTo("dragon-studio-bell-ring-390294"));
+            }
+
+            var cases = new[]
+            {
+                new { UnitId = "common-guardian", Kind = UnitActionKind.Damage, Expected = "pop_", MinPitch = 0.72f, MaxPitch = 0.86f },
+                new { UnitId = "common-vanguard", Kind = UnitActionKind.Damage, Expected = "pop_", MinPitch = 0.88f, MaxPitch = 1.02f },
+                new { UnitId = "epic-shaman", Kind = UnitActionKind.Damage, Expected = "pop_", MinPitch = 1.05f, MaxPitch = 1.18f },
+                new { UnitId = "epic-sniper", Kind = UnitActionKind.Damage, Expected = "pop_", MinPitch = 1.08f, MaxPitch = 1.22f },
+                new { UnitId = "epic-mage", Kind = UnitActionKind.Damage, Expected = "pop_", MinPitch = 1.2f, MaxPitch = 1.36f },
+                new { UnitId = "common-marksman", Kind = UnitActionKind.Damage, Expected = "djartmusic-real-swish_3-304242", MinPitch = 0.96f, MaxPitch = 1.08f },
+                new { UnitId = "common-healer", Kind = UnitActionKind.Heal, Expected = "yodguard-healing-magic-1-378665", MinPitch = 0.96f, MaxPitch = 1.06f },
+                new { UnitId = "rare-ninja", Kind = UnitActionKind.Damage, Expected = "dragon-studio-bell-ring-390294", MinPitch = 0.98f, MaxPitch = 1.12f }
+            };
+
+            int placementOrder = 1000;
+            foreach (var testCase in cases)
+            {
+                UnitDefinitionSO definition = catalog.Units.Single(
+                    candidate => candidate.UnitId == testCase.UnitId);
+                UnitView actor = Object.Instantiate(definition.Presentation.WorldPrefab);
+                actor.Bind(
+                    new BoardUnit(
+                        definition,
+                        StoneColor.White,
+                        0,
+                        0,
+                        placementOrder++),
+                    definition.Presentation);
+
+                SoundManager.Instance.StopAllSfx();
+                InvokePrivate(actor, "PlayActionSfx", testCase.Kind);
+
+                AudioSource playedSource = SoundManager.Instance
+                    .GetComponentsInChildren<AudioSource>()
+                    .FirstOrDefault(source =>
+                        source.clip != null
+                        && source.gameObject.name.StartsWith("SFX"));
+                Assert.That(playedSource, Is.Not.Null, testCase.UnitId);
+                if (testCase.Expected == "pop_")
+                {
+                    Assert.That(playedSource.clip.name, Does.StartWith(testCase.Expected));
+                }
+                else
+                {
+                    Assert.That(playedSource.clip.name, Is.EqualTo(testCase.Expected));
+                }
+
+                Assert.That(
+                    playedSource.pitch,
+                    Is.InRange(testCase.MinPitch, testCase.MaxPitch),
+                    testCase.UnitId);
+
+                Object.Destroy(actor.gameObject);
+                yield return null;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator UnitViewDotweenAnimationsCompleteAndRestoreState()
         {
             UnitView actor = UnitView.CreateRuntimePlaceholder(null);
@@ -479,6 +661,17 @@ namespace NAN2026.Gomoku.Tests
                     Is.LessThan(1.5f),
                     $"Health UI at ({unit.X}, {unit.Y}) drifted from its unit.");
             }
+        }
+
+        private static AudioSource FindConfiguredSfxSource()
+        {
+            AudioSource source = SoundManager.Instance
+                .GetComponentsInChildren<AudioSource>()
+                .FirstOrDefault(candidate =>
+                    candidate.clip != null
+                    && candidate.gameObject.name.StartsWith("SFX"));
+            Assert.That(source, Is.Not.Null);
+            return source;
         }
 
         private static void InvokePrivate(object target, string methodName, params object[] arguments)

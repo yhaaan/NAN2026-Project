@@ -382,6 +382,8 @@ MonoBehaviour:
   hud: {fileID: 347977219}
   cameraEffects: {fileID: 78561402}
   placementSfx: {fileID: 8300000, guid: 5525eb23f5cdd8f429abe6da675cd6b3, type: 3}
+  victorySfx: {fileID: 8300000, guid: 898d828458743d643af75aec2bfa7d1f, type: 3}
+  defeatSfx: {fileID: 8300000, guid: 64e5d6960393d9e45ab4501678559257, type: 3}
   comPlacementDelay: 0.45
   combatDuration: 10
   shopHideDelayAfterPlacement: 0.2
@@ -1009,6 +1011,7 @@ GameObject:
   - component: {fileID: 1478620079}
   - component: {fileID: 1478620078}
   - component: {fileID: 1478620077}
+  - component: {fileID: 1478620080}
   m_Layer: 0
   m_Name: GameCanvas
   m_TagString: Untagged
@@ -1101,6 +1104,20 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
+--- !u!114 &1478620080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478620075}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79cee50ed2f549a4faa18c0db6468cc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UiButtonSfxFeedback
+  clickSfx: {fileID: 8300000, guid: c4ed88b3d9c83e84c93cd3a2d7459e0e, type: 3}
+  pitchRange: {x: 0.92, y: 1.08}
 --- !u!1 &1512398835
 GameObject:
   m_ObjectHideFlags: 0
@@ -1237,6 +1254,11 @@ MonoBehaviour:
   hitDamagePopup: {fileID: 1106664364040897239, guid: 34ade6417e9cf044b91cfed2d20ce63f, type: 3}
   healPopup: {fileID: 1106664364040897239, guid: aed4bbb273dd4144b98bebbed64e5f55, type: 3}
   healthBarPrefab: {fileID: 11400000, guid: a5d91c3f08e746a4b72f19cd5e638201, type: 3}
+  hitSfx:
+  - {fileID: 8300000, guid: 2dd3ddc77e65dd8438ada5c97d5b9477, type: 3}
+  - {fileID: 8300000, guid: e0d4c7951d8100e41954b167f82d112f, type: 3}
+  - {fileID: 8300000, guid: 63ae8b630e35ad745bb94578f95959e8, type: 3}
+  - {fileID: 8300000, guid: 3e83c012bb29aac499fdc877bf75b174, type: 3}
   boardSprite: {fileID: 21300000, guid: f16f0216e80bbef48898e64b71693e52, type: 3}
   backgroundSprite: {fileID: 21300000, guid: f6af2ded957d0814583959ab6f192404, type: 3}
   worldView: {fileID: 0}

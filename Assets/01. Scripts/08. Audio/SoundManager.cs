@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -23,10 +24,12 @@ namespace NAN2026.Gomoku
 
         [Header("Playback")]
         [SerializeField, Min(1)] private int sfxPoolSize = 8;
+        [SerializeField, Min(1)] private int maxConcurrentSfxPerGroup = 2;
         [SerializeField, Min(0f)] private float defaultMusicFadeDuration = 0.5f;
 
         private readonly List<AudioSource> sfxSources = new List<AudioSource>();
         private readonly Dictionary<AudioSource, float> sfxGains = new Dictionary<AudioSource, float>();
+        private readonly Dictionary<AudioSource, string> sfxGroups = new Dictionary<AudioSource, string>();
         private AudioSource firstMusicSource;
         private AudioSource secondMusicSource;
         private AudioSource activeMusicSource;
@@ -63,6 +66,7 @@ namespace NAN2026.Gomoku
         public bool IsMasterMuted => masterMuted;
         public bool IsMusicMuted => musicMuted;
         public bool IsSfxMuted => sfxMuted;
+        public int MaxConcurrentSfxPerGroup => maxConcurrentSfxPerGroup;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Bootstrap()
@@ -164,6 +168,12 @@ namespace NAN2026.Gomoku
                 return null;
             }
 
+            string group = GetSfxGroup(clip);
+            if (CountPlayingSfx(group) >= Mathf.Max(1, maxConcurrentSfxPerGroup))
+            {
+                return null;
+            }
+
             AudioSource source = GetAvailableSfxSource();
             source.Stop();
             source.transform.position = position;
@@ -173,6 +183,7 @@ namespace NAN2026.Gomoku
             source.spatialBlend = Mathf.Clamp01(spatialBlend);
             source.priority = 128;
             sfxGains[source] = Mathf.Clamp01(volume);
+            sfxGroups[source] = group;
             RefreshSfxVolume(source);
             source.Play();
             return source;
@@ -191,7 +202,11 @@ namespace NAN2026.Gomoku
                 cue.GetRandomPitch(),
                 cue.SpatialBlend,
                 position);
-            source.priority = cue.Priority;
+            if (source != null)
+            {
+                source.priority = cue.Priority;
+            }
+
             return source;
         }
 
@@ -201,6 +216,7 @@ namespace NAN2026.Gomoku
             {
                 source.Stop();
                 source.clip = null;
+                sfxGroups.Remove(source);
             }
         }
 
@@ -259,6 +275,7 @@ namespace NAN2026.Gomoku
                 AudioSource source = CreateSource($"SFX {index + 1}");
                 sfxSources.Add(source);
                 sfxGains[source] = 1f;
+                sfxGroups[source] = string.Empty;
             }
         }
 
@@ -284,6 +301,29 @@ namespace NAN2026.Gomoku
             AudioSource fallback = sfxSources[nextSfxSourceIndex];
             nextSfxSourceIndex = (nextSfxSourceIndex + 1) % sfxSources.Count;
             return fallback;
+        }
+
+        private int CountPlayingSfx(string group)
+        {
+            int count = 0;
+            foreach (AudioSource source in sfxSources)
+            {
+                if (source.isPlaying
+                    && sfxGroups.TryGetValue(source, out string sourceGroup)
+                    && sourceGroup == group)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        private static string GetSfxGroup(AudioClip clip)
+        {
+            return clip.name.StartsWith("pop_", StringComparison.OrdinalIgnoreCase)
+                ? "CombatPop"
+                : clip.name;
         }
 
         private IEnumerator CrossfadeMusic(

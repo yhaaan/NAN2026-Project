@@ -83,6 +83,35 @@ namespace NAN2026.Gomoku.Tests
         }
 
         [Test]
+        public void ActingUnitKilledByDeathExplosion_DoesNotReadRemovedCooldown()
+        {
+            UnitDefinitionSO attacker = TestUnitFactory.Create(
+                "Attacker", UnitRole.Vanguard, 100, 100, 1, 1f);
+            UnitDefinitionSO bomb = TestUnitFactory.Create(
+                "Bomb", UnitRole.Vanguard, 50, 0, 1, 10f,
+                UnitGrade.Rare, UnitAbility.DeathExplosion, 100);
+
+            try
+            {
+                var game = new GomokuGame();
+                game.TryPlace(7, 7, attacker);
+                game.TryPlace(8, 7, bomb);
+                var combat = new CombatResolver();
+                combat.Begin(game);
+
+                Assert.DoesNotThrow(() => combat.Tick(1.01f));
+                Assert.That(game.GetStone(7, 7), Is.EqualTo(StoneColor.None));
+                Assert.That(game.GetStone(8, 7), Is.EqualTo(StoneColor.None));
+                Assert.That(combat.IsFinished, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(attacker);
+                Object.DestroyImmediate(bomb);
+            }
+        }
+
+        [Test]
         public void Healer_ReportsAllTargetsInSingleActionEvent()
         {
             UnitDefinitionSO ally = TestUnitFactory.Create("Ally", UnitRole.Vanguard, 100, 0, 1, 10f);

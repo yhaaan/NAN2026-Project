@@ -88,7 +88,13 @@ namespace NAN2026.Gomoku
                 while (cooldowns[unit] <= 0f && unit.IsAlive && !IsFinished)
                 {
                     Act(unit);
-                    cooldowns[unit] += GetActionInterval(unit);
+                    if (!unit.IsAlive
+                        || !cooldowns.TryGetValue(unit, out float remainingCooldown))
+                    {
+                        break;
+                    }
+
+                    cooldowns[unit] = remainingCooldown + GetActionInterval(unit);
                 }
             }
         }

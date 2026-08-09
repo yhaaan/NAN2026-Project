@@ -65,7 +65,10 @@ namespace NAN2026.Gomoku
             }
 
             var random = new System.Random();
-            playerShop = new ShopState(unitCatalog.Units, random);
+            playerShop = new ShopState(
+                unitCatalog.Units,
+                random,
+                usePlayerAdvantagePenalty: true);
             comShop = new ShopState(unitCatalog.Units, random);
             com = new GomokuCom(random, combatDuration);
             combat = new CombatResolver(combatDuration);

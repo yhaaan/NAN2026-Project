@@ -9,6 +9,7 @@ namespace NAN2026.Gomoku
         public const int RerollCost = 1;
         public const int StartingGold = 2;
         public const int MaxComebackDeficit = 3;
+        public const int MaxPlayerAdvantagePenalty = 4;
 
         private static readonly int[][] GradeWeights =
         {
@@ -18,17 +19,32 @@ namespace NAN2026.Gomoku
             new[] { 55, 30, 12, 3 }
         };
 
+        private static readonly int[][] PlayerAdvantageGradeWeights =
+        {
+            new[] { 70, 23, 6, 1 },
+            new[] { 78, 18, 4, 0 },
+            new[] { 86, 12, 2, 0 },
+            new[] { 94, 6, 0, 0 },
+            new[] { 100, 0, 0, 0 }
+        };
+
         private readonly IReadOnlyList<UnitDefinitionSO> unitPool;
         private readonly Random random;
+        private readonly bool usePlayerAdvantagePenalty;
         private readonly List<UnitDefinitionSO> offers = new List<UnitDefinitionSO>(SlotCount);
         private readonly List<UnitDefinitionSO> gradeCandidates = new List<UnitDefinitionSO>();
         private int turnsStarted;
 
         public int Gold { get; private set; }
         public int ComebackDeficit { get; private set; }
+        public int PlayerAdvantage { get; private set; }
+        public bool IsLowestGradeOnly => PlayerAdvantage >= MaxPlayerAdvantagePenalty;
         public IReadOnlyList<UnitDefinitionSO> Offers => offers;
 
-        public ShopState(IReadOnlyList<UnitDefinitionSO> unitPool, Random random)
+        public ShopState(
+            IReadOnlyList<UnitDefinitionSO> unitPool,
+            Random random,
+            bool usePlayerAdvantagePenalty = false)
         {
             if (unitPool == null || unitPool.Count == 0)
             {
@@ -37,6 +53,7 @@ namespace NAN2026.Gomoku
 
             this.unitPool = unitPool;
             this.random = random ?? throw new ArgumentNullException(nameof(random));
+            this.usePlayerAdvantagePenalty = usePlayerAdvantagePenalty;
             ResetForGame();
         }
 
@@ -45,12 +62,16 @@ namespace NAN2026.Gomoku
             Gold = StartingGold;
             turnsStarted = 0;
             ComebackDeficit = 0;
+            PlayerAdvantage = 0;
             offers.Clear();
         }
 
         public void SetComebackDeficit(int unitDeficit)
         {
             ComebackDeficit = Math.Max(0, Math.Min(MaxComebackDeficit, unitDeficit));
+            PlayerAdvantage = usePlayerAdvantagePenalty
+                ? Math.Max(0, Math.Min(MaxPlayerAdvantagePenalty, -unitDeficit))
+                : 0;
         }
 
         public void BeginPlacementTurn()
@@ -87,7 +108,9 @@ namespace NAN2026.Gomoku
 
         private UnitDefinitionSO RollOffer()
         {
-            int[] weights = GradeWeights[ComebackDeficit];
+            int[] weights = PlayerAdvantage > 0
+                ? PlayerAdvantageGradeWeights[PlayerAdvantage]
+                : GradeWeights[ComebackDeficit];
             int totalWeight = 0;
             for (int gradeIndex = 0; gradeIndex < weights.Length; gradeIndex++)
             {
@@ -95,6 +118,11 @@ namespace NAN2026.Gomoku
                 {
                     totalWeight += weights[gradeIndex];
                 }
+            }
+
+            if (totalWeight <= 0)
+            {
+                return RollLowestAvailableGradeOffer();
             }
 
             int roll = random.Next(totalWeight);
@@ -120,6 +148,29 @@ namespace NAN2026.Gomoku
             foreach (UnitDefinitionSO definition in unitPool)
             {
                 if (definition.Grade == selectedGrade)
+                {
+                    gradeCandidates.Add(definition);
+                }
+            }
+
+            return gradeCandidates[random.Next(gradeCandidates.Count)];
+        }
+
+        private UnitDefinitionSO RollLowestAvailableGradeOffer()
+        {
+            UnitGrade lowestGrade = UnitGrade.Legendary;
+            foreach (UnitDefinitionSO definition in unitPool)
+            {
+                if (definition.Grade < lowestGrade)
+                {
+                    lowestGrade = definition.Grade;
+                }
+            }
+
+            gradeCandidates.Clear();
+            foreach (UnitDefinitionSO definition in unitPool)
+            {
+                if (definition.Grade == lowestGrade)
                 {
                     gradeCandidates.Add(definition);
                 }

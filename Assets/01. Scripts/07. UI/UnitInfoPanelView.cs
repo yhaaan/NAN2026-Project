@@ -10,8 +10,11 @@ namespace NAN2026.Gomoku
         [Header("Panel")]
         [SerializeField] private CanvasGroup panelGroup;
         [SerializeField] private Image roleColorImage;
+        [SerializeField] private Image roleIconImage;
         [SerializeField] private Text nameText;
         [SerializeField] private Text detailsText;
+        [SerializeField] private Text roleNameText;
+        [SerializeField] private Text roleDescriptionText;
         [SerializeField] private Slider healthSlider;
         [SerializeField] private Text healthValueText;
         [SerializeField] private Slider cooldownSlider;
@@ -72,8 +75,13 @@ namespace NAN2026.Gomoku
             nameText.color = new Color(0.09f, 0.11f, 0.15f);
             nameText.text =
                 $"<size=24><b>{definition.DisplayName}</b></size>\n"
-                + $"<size=13><color=#{gradeColor}>■ {definition.GradeDisplayName}</color>   "
-                + $"<color=#4B5568>■ {definition.RoleDisplayName}</color></size>";
+                + $"<size=13><color=#{gradeColor}>■ {definition.GradeDisplayName}</color></size>";
+
+            roleIconImage.sprite = definition.RoleIcon;
+            roleIconImage.preserveAspect = true;
+            roleIconImage.gameObject.SetActive(definition.RoleIcon != null);
+            roleNameText.text = $"<b>{definition.RoleDisplayName}</b>";
+            roleDescriptionText.text = definition.RoleDescription;
 
             string power = definition.IsSupport
                 ? definition.IsHealer ? "회복력" : "지원력"

@@ -54,6 +54,7 @@ namespace NAN2026.Gomoku
         [SerializeField, Range(0f, 1f)] private float abilityRatio;
         [SerializeField] private Color roleColor = Color.white;
         [Header("Visuals")]
+        [SerializeField] private Sprite roleIcon;
         [SerializeField] private Sprite whiteSprite;
         [SerializeField] private Sprite blackSprite;
         [SerializeField] private UnitActionSO action;
@@ -74,6 +75,7 @@ namespace NAN2026.Gomoku
         public Color RoleColor => presentation != null ? presentation.AccentColor : roleColor;
         public Color GradeColor => UnitLabels.GradeColor(grade);
         public Color GradeTextColor => UnitLabels.GradeTextColor(grade);
+        public Sprite RoleIcon => roleIcon;
         public Sprite WhiteSprite => whiteSprite;
         public Sprite BlackSprite => blackSprite;
         public UnitActionSO Action => action;
@@ -84,6 +86,7 @@ namespace NAN2026.Gomoku
             || ability == UnitAbility.SaintProtection;
         public string GradeDisplayName => UnitLabels.GradeName(grade);
         public string RoleDisplayName => UnitLabels.RoleName(role);
+        public string RoleDescription => UnitLabels.RoleDescription(role);
         public string AbilityDisplayName => UnitLabels.AbilityName(ability);
 
         public Sprite GetSprite(StoneColor side)
@@ -114,6 +117,23 @@ namespace NAN2026.Gomoku
                 case UnitRole.Marksman: return "원거리 딜러";
                 case UnitRole.Caster: return "마법";
                 default: return "보조";
+            }
+        }
+
+        public static string RoleDescription(UnitRole role)
+        {
+            switch (role)
+            {
+                case UnitRole.Guardian:
+                    return "사거리 안의 적이 이 역할군을 우선 공격합니다.";
+                case UnitRole.Vanguard:
+                    return "가까운 적에게 접근해 근거리 기본 공격을 합니다.";
+                case UnitRole.Marksman:
+                    return "거리를 유지하며 원거리 기본 공격을 합니다.";
+                case UnitRole.Caster:
+                    return "기본 공격 대신 고유한 공격 주문을 사용합니다.";
+                default:
+                    return "기본 공격 없이 회복·강화·약화 능력으로 아군을 돕습니다.";
             }
         }
 

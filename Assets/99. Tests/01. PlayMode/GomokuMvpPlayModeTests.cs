@@ -180,6 +180,7 @@ namespace NAN2026.Gomoku.Tests
                 Text unitLabel = shopSlot.transform.Find("Name").GetComponent<Text>();
                 Text statsLabel = shopSlot.transform.Find("Stats").GetComponent<Text>();
                 Image cardBackground = shopSlot.GetComponent<Image>();
+                Image roleIcon = shopSlot.transform.Find("RoleIcon").GetComponent<Image>();
                 RectTransform cardRect = shopSlot.transform as RectTransform;
 
                 Assert.That(unitLabel.text, Does.Contain("■"));
@@ -215,15 +216,13 @@ namespace NAN2026.Gomoku.Tests
                 Assert.That(shopSlot.transform.Find("Ability"), Is.Not.Null);
                 Assert.That(cardRect.rect.size, Is.EqualTo(new Vector2(196f, 148f)));
                 Assert.That(cardBackground.color.grayscale, Is.GreaterThan(0.8f));
+                Assert.That(cardBackground.color, Is.Not.EqualTo(Color.white));
+                Assert.That(roleIcon.sprite, Is.Not.Null);
+                Assert.That(roleIcon.preserveAspect, Is.True);
                 Assert.That(unitLabel.color.grayscale, Is.LessThan(0.2f));
                 Assert.That(statsLabel.color.grayscale, Is.LessThan(0.35f));
 
-                bool hasRole = unitLabel.text.Contains("탱커")
-                    || unitLabel.text.Contains("전사")
-                    || unitLabel.text.Contains("원거리 딜러")
-                    || unitLabel.text.Contains("마법")
-                    || unitLabel.text.Contains("보조");
-                Assert.That(hasRole, Is.True);
+                Assert.That(roleIcon.gameObject.activeSelf, Is.True);
             }
             Assert.That(boardView.WorldView.ActiveUnitViewCount, Is.EqualTo(1));
             UnitHealthBarView[] initialHealthBars = Object.FindObjectsByType<UnitHealthBarView>(
@@ -254,10 +253,16 @@ namespace NAN2026.Gomoku.Tests
             Text infoDetails = infoPanel.transform.Find("Details").GetComponent<Text>();
             Text healthValue = infoPanel.transform.Find("HealthSlider/ValueText").GetComponent<Text>();
             Image sideAccent = infoPanel.transform.Find("RoleColor").GetComponent<Image>();
+            Image infoRoleIcon = infoPanel.transform.Find("RoleIcon").GetComponent<Image>();
+            Text roleName = infoPanel.transform.Find("RoleAbilityPanel/RoleName").GetComponent<Text>();
+            Text roleDescription = infoPanel.transform.Find("RoleAbilityPanel/RoleDescription").GetComponent<Text>();
 
             Assert.That(infoName.text, Does.Contain("<color=#"));
             Assert.That(infoName.text, Does.Contain(enemyUnit.Definition.GradeDisplayName));
-            Assert.That(infoName.text, Does.Contain(enemyUnit.Definition.RoleDisplayName));
+            Assert.That(infoName.text, Does.Not.Contain("■ " + enemyUnit.Definition.RoleDisplayName));
+            Assert.That(infoRoleIcon.sprite, Is.EqualTo(enemyUnit.Definition.RoleIcon));
+            Assert.That(roleName.text, Does.Contain(enemyUnit.Definition.RoleDisplayName));
+            Assert.That(roleDescription.text, Is.EqualTo(enemyUnit.Definition.RoleDescription));
             Assert.That(infoDetails.text, Does.Not.Contain("공격 주기"));
             Assert.That(infoDetails.text, Does.Not.Contain("적군 ·"));
             Assert.That(infoDetails.text, Does.Not.Contain("쿨다운"));

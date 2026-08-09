@@ -7,13 +7,13 @@ namespace NAN2026.Gomoku
 {
     public sealed class ShopSlotView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        private static readonly Color NormalTint = Color.white;
         private static readonly Color SelectedTint = new Color(1f, 0.9f, 0.62f);
         private static readonly Color SelectedOutline = new Color(1f, 0.72f, 0.22f, 0.95f);
         private static readonly Color HoverOutline = new Color(0.76f, 0.84f, 1f, 0.8f);
 
         [SerializeField] private Button button;
         [SerializeField] private Image roleColor;
+        [SerializeField] private Image roleIcon;
         [SerializeField] private Text nameText;
         [SerializeField] private Text statsText;
         [SerializeField] private AudioClip clickSfx;
@@ -28,6 +28,7 @@ namespace NAN2026.Gomoku
         private Text intervalStatText;
         private Outline stateOutline;
         private bool isHovered;
+        private Color gradeBackgroundTint = Color.white;
 
         public bool IsSelected { get; private set; }
         public AudioClip ClickSfx => clickSfx;
@@ -47,8 +48,11 @@ namespace NAN2026.Gomoku
             string gradeColor = ColorUtility.ToHtmlStringRGB(definition.GradeTextColor);
             nameText.text =
                 $"<size=22><b>{definition.DisplayName}</b></size>\n"
-                + $"<size=12><color=#{gradeColor}>■ {definition.GradeDisplayName}</color>   "
-                + $"<color=#4B5568>■ {definition.RoleDisplayName}</color></size>";
+                + $"<size=12><color=#{gradeColor}>■ {definition.GradeDisplayName}</color></size>";
+
+            roleIcon.sprite = definition.RoleIcon;
+            roleIcon.preserveAspect = true;
+            roleIcon.gameObject.SetActive(definition.RoleIcon != null);
 
             bool hasAbility = definition.Ability != UnitAbility.None;
             abilityText.gameObject.SetActive(hasAbility);
@@ -61,6 +65,7 @@ namespace NAN2026.Gomoku
             rangeStatText.text = definition.Range.ToString();
             intervalStatText.text = $"{definition.ActionInterval:0.0}초";
             roleColor.color = definition.GradeColor;
+            gradeBackgroundTint = Color.Lerp(Color.white, definition.GradeColor, 0.13f);
             button.interactable = interactable;
             SetSelected(selected);
         }
@@ -69,8 +74,17 @@ namespace NAN2026.Gomoku
         {
             IsSelected = selected;
             ColorBlock colors = button.colors;
-            colors.normalColor = selected ? SelectedTint : NormalTint;
+            colors.normalColor = selected
+                ? Color.Lerp(gradeBackgroundTint, SelectedTint, 0.58f)
+                : gradeBackgroundTint;
+            colors.highlightedColor = Color.Lerp(gradeBackgroundTint, Color.white, 0.32f);
+            colors.pressedColor = Color.Lerp(gradeBackgroundTint, new Color(0.7f, 0.72f, 0.78f), 0.32f);
             colors.selectedColor = colors.normalColor;
+            colors.disabledColor = new Color(
+                gradeBackgroundTint.r * 0.78f,
+                gradeBackgroundTint.g * 0.78f,
+                gradeBackgroundTint.b * 0.78f,
+                0.72f);
             button.colors = colors;
             RefreshOutline();
         }
@@ -113,7 +127,7 @@ namespace NAN2026.Gomoku
             ConfigureStatsGrid();
 
             ColorBlock colors = button.colors;
-            colors.normalColor = NormalTint;
+            colors.normalColor = gradeBackgroundTint;
             colors.highlightedColor = new Color(0.92f, 0.96f, 1f);
             colors.pressedColor = new Color(0.82f, 0.84f, 0.9f);
             colors.selectedColor = SelectedTint;

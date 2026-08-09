@@ -31,12 +31,11 @@ namespace NAN2026.Gomoku
             (1, -1)
         };
 
-        private readonly Random random;
         private readonly float combatDuration;
 
         public GomokuCom(Random random, float combatDuration = DefaultCombatDuration)
         {
-            this.random = random ?? throw new ArgumentNullException(nameof(random));
+            _ = random ?? throw new ArgumentNullException(nameof(random));
             this.combatDuration = Math.Max(0.1f, combatDuration);
         }
 
@@ -47,6 +46,12 @@ namespace NAN2026.Gomoku
         {
             ComDecision best = new ComDecision(-1, -1, -1, float.MinValue);
             var tacticalEvaluator = new GomokuComTacticalEvaluator(game, side, combatDuration);
+            var situationEvaluator = new GomokuComSituationEvaluator(game, side, combatDuration);
+            var situationScores = new float[offers.Count];
+            for (int offerIndex = 0; offerIndex < offers.Count; offerIndex++)
+            {
+                situationScores[offerIndex] = situationEvaluator.Evaluate(offers[offerIndex]);
+            }
 
             for (int x = 0; x < GomokuGame.BoardSize; x++)
             {
@@ -61,9 +66,9 @@ namespace NAN2026.Gomoku
                     for (int offerIndex = 0; offerIndex < offers.Count; offerIndex++)
                     {
                         float score = boardScore
+                            + situationScores[offerIndex]
                             + EvaluateUnitPosition(game, offers[offerIndex], x, y, side)
-                            + tacticalEvaluator.Evaluate(offers[offerIndex], x, y)
-                            + (float)random.NextDouble() * 0.25f;
+                            + tacticalEvaluator.Evaluate(offers[offerIndex], x, y);
 
                         if (score > best.Score)
                         {

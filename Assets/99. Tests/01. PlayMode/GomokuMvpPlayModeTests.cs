@@ -82,6 +82,17 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(turnStatusView, Is.Not.Null);
             Assert.That(pauseMenu, Is.Not.Null);
             Assert.That(pauseMenu.MasterVolumeSlider, Is.Not.Null);
+            Assert.That(pauseMenu.GetComponentsInChildren<Text>(true), Is.Empty);
+            TMP_Text[] pauseMenuTexts = pauseMenu.GetComponentsInChildren<TMP_Text>(true);
+            Assert.That(pauseMenuTexts, Has.Length.EqualTo(5));
+            Assert.That(pauseMenuTexts.All(text => text.font.name.StartsWith("Maplestory Bold")), Is.True);
+
+            Transform resultPanelRoot = hud.transform.Find("ResultPanel");
+            Assert.That(resultPanelRoot, Is.Not.Null);
+            Assert.That(resultPanelRoot.GetComponentsInChildren<Text>(true), Is.Empty);
+            TMP_Text[] resultPanelTexts = resultPanelRoot.GetComponentsInChildren<TMP_Text>(true);
+            Assert.That(resultPanelTexts, Has.Length.EqualTo(3));
+            Assert.That(resultPanelTexts.All(text => text.font.name.StartsWith("Maplestory Bold")), Is.True);
 
             Assert.That(uiButtonFeedback, Is.Not.Null);
             Assert.That(uiButtonFeedback.ClickSfx.name, Is.EqualTo("drop_002"));
@@ -533,6 +544,70 @@ namespace NAN2026.Gomoku.Tests
 
             Object.Destroy(boardView.gameObject);
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator ResultPanelUsesPopupTween()
+        {
+            AsyncOperation load = SceneManager.LoadSceneAsync("GomokuMvp", LoadSceneMode.Single);
+            while (!load.isDone)
+            {
+                yield return null;
+            }
+
+            yield return null;
+            yield return null;
+
+            GomokuHud hud = Object.FindFirstObjectByType<GomokuHud>();
+            RectTransform panel = hud.transform.Find("ResultPanel") as RectTransform;
+            CanvasGroup group = panel.GetComponent<CanvasGroup>();
+            TMP_Text title = panel.Find("Title").GetComponent<TMP_Text>();
+            TMP_Text score = panel.Find("Score").GetComponent<TMP_Text>();
+            TMP_Text buttonText = panel.Find("ContinueButton/Text").GetComponent<TMP_Text>();
+
+            hud.HideResult();
+            Vector3 shownScale = panel.localScale;
+            hud.ShowResult("승리", "3 : 0", "계속");
+
+            Transform backdrop = hud.transform.Find("ResultBackdrop");
+            Assert.That(backdrop, Is.Not.Null);
+            Image backdropImage = backdrop.GetComponent<Image>();
+            CanvasGroup backdropGroup = backdrop.GetComponent<CanvasGroup>();
+            RectTransform backdropRect = (RectTransform)backdrop;
+
+            Assert.That(panel.gameObject.activeSelf, Is.True);
+            Assert.That(backdrop.gameObject.activeSelf, Is.True);
+            Assert.That(backdrop.GetSiblingIndex(), Is.EqualTo(panel.GetSiblingIndex() - 1));
+            Assert.That(backdropRect.anchorMin, Is.EqualTo(Vector2.zero));
+            Assert.That(backdropRect.anchorMax, Is.EqualTo(Vector2.one));
+            Assert.That(
+                backdropImage.color,
+                Is.EqualTo(new Color(0f, 0f, 0f, hud.ResultBackdropOpacity)));
+            Assert.That(backdropGroup.alpha, Is.EqualTo(0f).Within(0.01f));
+            Assert.That(backdropGroup.blocksRaycasts, Is.True);
+            Assert.That(group.alpha, Is.EqualTo(0f).Within(0.01f));
+            Assert.That(panel.localScale.x, Is.EqualTo(shownScale.x * hud.ResultStartScale).Within(0.01f));
+            Assert.That(group.interactable, Is.False);
+            Assert.That(title.text, Is.EqualTo("승리"));
+            Assert.That(score.text, Is.EqualTo("3 : 0"));
+            Assert.That(buttonText.text, Is.EqualTo("계속"));
+
+            yield return new WaitForSecondsRealtime(hud.ResultShowDuration * 0.5f);
+            Assert.That(backdropGroup.alpha, Is.GreaterThan(0f));
+            Assert.That(group.alpha, Is.GreaterThan(0f));
+            Assert.That(panel.localScale.x, Is.GreaterThan(shownScale.x * hud.ResultStartScale));
+            Assert.That(group.interactable, Is.False);
+
+            yield return new WaitForSecondsRealtime(hud.ResultShowDuration * 0.6f + 0.05f);
+            Assert.That(backdropGroup.alpha, Is.EqualTo(1f).Within(0.01f));
+            Assert.That(group.alpha, Is.EqualTo(1f).Within(0.01f));
+            Assert.That(panel.localScale.x, Is.EqualTo(shownScale.x).Within(0.01f));
+            Assert.That(group.interactable, Is.True);
+
+            hud.HideResult();
+            Assert.That(panel.gameObject.activeSelf, Is.False);
+            Assert.That(backdrop.gameObject.activeSelf, Is.False);
+            Assert.That(backdropGroup.blocksRaycasts, Is.False);
         }
 
         [UnityTest]

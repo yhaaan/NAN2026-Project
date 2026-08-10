@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -16,7 +17,7 @@ namespace NAN2026.Gomoku
         [SerializeField] private Button restartButton;
         [SerializeField] private Button titleButton;
         [SerializeField] private Slider masterVolumeSlider;
-        [SerializeField] private Text masterVolumeValueText;
+        [SerializeField] private TMP_Text masterVolumeValueText;
 
         [Header("Menu Animation")]
         [SerializeField, Min(0f)] private float showDuration = 0.22f;

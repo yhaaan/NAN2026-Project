@@ -92,6 +92,48 @@ namespace NAN2026.Gomoku.Tests
             }
         }
 
+        [Test]
+        public void ChooseMove_PrefersAreaHealerForSeveralWoundedAllies()
+        {
+            UnitDefinitionSO ally = TestUnitFactory.Create(
+                "Wounded Ally", UnitRole.Vanguard, 100, 10, 1, 1f);
+            UnitDefinitionSO passiveEnemy = TestUnitFactory.Create(
+                "Passive Enemy", UnitRole.Vanguard, 100, 0, 1, 10f);
+            UnitDefinitionSO areaHealer = TestUnitFactory.Create(
+                "Area Healer", UnitRole.Support, 80, 10, 3, 1f,
+                ability: UnitAbility.AreaHeal);
+            UnitDefinitionSO singleTargetHealer = TestUnitFactory.Create(
+                "Single Target Healer", UnitRole.Support, 80, 14, 3, 1f,
+                ability: UnitAbility.LowestHealthHeal);
+
+            try
+            {
+                var game = new GomokuGame();
+                for (int index = 0; index < 3; index++)
+                {
+                    game.TryPlace(5 + index, 7, ally);
+                    game.TryPlace(12 + index, 12, passiveEnemy);
+                    game.CompleteCombat();
+                    game.GetUnit(5 + index, 7).TakeDamage(70);
+                }
+
+                var com = new GomokuCom(new System.Random(1));
+                ComDecision decision = com.ChooseMove(
+                    game,
+                    new[] { singleTargetHealer, areaHealer },
+                    StoneColor.Black);
+
+                Assert.That(decision.OfferIndex, Is.EqualTo(1));
+            }
+            finally
+            {
+                Object.DestroyImmediate(ally);
+                Object.DestroyImmediate(passiveEnemy);
+                Object.DestroyImmediate(areaHealer);
+                Object.DestroyImmediate(singleTargetHealer);
+            }
+        }
+
         private static void DestroyDefinitions(UnitDefinitionSO[] definitions)
         {
             foreach (UnitDefinitionSO definition in definitions)

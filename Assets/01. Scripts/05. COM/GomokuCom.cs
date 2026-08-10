@@ -242,7 +242,6 @@ namespace NAN2026.Gomoku
             float actionPower = definition.IsSupport ? 0f : definition.Power / interval;
             float incomingPower = 0f;
             float outgoingOpportunity = 0f;
-            float healingOpportunity = 0f;
             float alliedHealingSupport = 0f;
             int nearbyAllies = 0;
             int adjacentAllies = 0;
@@ -255,12 +254,6 @@ namespace NAN2026.Gomoku
                 {
                     if (distance <= Math.Max(1, definition.Range)) nearbyAllies++;
                     if (distance <= 1) adjacentAllies++;
-
-                    if (definition.IsHealer && distance <= definition.Range)
-                    {
-                        int missingHealth = unit.Definition.MaxHealth - unit.CurrentHealth;
-                        healingOpportunity += Math.Min(definition.Power, missingHealth) / interval;
-                    }
 
                     if (unit.Definition.IsHealer && distance <= unit.Definition.Range)
                     {
@@ -285,6 +278,14 @@ namespace NAN2026.Gomoku
                         / Math.Max(0.1f, unit.Definition.ActionInterval);
                 }
             }
+
+            float healingOpportunity = EvaluateHealingOpportunity(
+                game,
+                definition,
+                x,
+                y,
+                side,
+                interval);
 
             float score = definition.MaxHealth * 0.12f + actionPower * 1.5f;
             score += outgoingOpportunity * 2.2f;
@@ -342,6 +343,44 @@ namespace NAN2026.Gomoku
             if (definition.Role == UnitRole.Guardian) score += nearbyAllies * 9f;
             else if (definition.IsHealer) score += nearbyAllies * 13f;
             return score;
+        }
+
+        private static float EvaluateHealingOpportunity(
+            GomokuGame game,
+            UnitDefinitionSO definition,
+            int x,
+            int y,
+            StoneColor side,
+            float interval)
+        {
+            if (!definition.IsHealer)
+            {
+                return 0f;
+            }
+
+            var candidate = new BoardUnit(definition, side, x, y, int.MaxValue);
+            var simulatedUnits = new List<BoardUnit>(game.Units.Count + 1);
+            simulatedUnits.AddRange(game.Units);
+            simulatedUnits.Add(candidate);
+            CombatActionPlan plan = CombatActionRules.BuildAbilityPlan(
+                candidate,
+                simulatedUnits,
+                definition.Power);
+
+            float usefulHealing = 0f;
+            foreach (CombatEffect effect in plan.Effects)
+            {
+                if (effect.Kind != CombatEffectKind.Heal)
+                {
+                    continue;
+                }
+
+                int missingHealth = effect.Target.Definition.MaxHealth
+                    - effect.Target.CurrentHealth;
+                usefulHealing += Math.Min(effect.Amount, missingHealth);
+            }
+
+            return usefulHealing / interval;
         }
 
         private static int BestRayEnemyCount(

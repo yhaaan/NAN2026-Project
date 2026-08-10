@@ -170,9 +170,13 @@ namespace NAN2026.Gomoku
 
             float healingPerSecond = Math.Max(definition.Power, definition.AbilityPower)
                 * actionRate;
+            int simultaneousTargets = definition.Ability == UnitAbility.AreaHeal
+                || definition.Ability == UnitAbility.SaintProtection
+                ? woundedAllies
+                : 1;
             float usefulHealing = Math.Min(
                 totalMissingHealth,
-                healingPerSecond * combatDuration * woundedAllies);
+                healingPerSecond * combatDuration * simultaneousTargets);
             float score = totalMissingHealth * 4f
                 + usefulHealing * 2f
                 + woundedAllies * 140f;

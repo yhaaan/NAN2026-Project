@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -36,7 +37,7 @@ namespace NAN2026.Gomoku.Tests
 
             Assert.That(FindText("TurnText").text, Is.EqualTo("3턴"));
             Assert.That(FindText("PhaseText").text, Is.EqualTo(phaseLabel));
-            Assert.That(FindText("ScoreText").text, Is.EqualTo("플레이어 1 : 2 적"));
+            Assert.That(FindText("ScoreText").text, Is.EqualTo("1 : 2"));
         }
 
         [Test]
@@ -60,11 +61,11 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(slider.value, Is.EqualTo(0f));
         }
 
-        private Text FindText(string objectName)
+        private TMP_Text FindText(string objectName)
         {
             Transform child = instance.transform.Find(objectName);
             Assert.That(child, Is.Not.Null);
-            return child.GetComponent<Text>();
+            return child.GetComponent<TMP_Text>();
         }
     }
 }

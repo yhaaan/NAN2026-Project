@@ -2,7 +2,8 @@
     "name": "NAN2026.Gomoku.Tests",
     "rootNamespace": "NAN2026.Gomoku.Tests",
     "references": [
-        "NAN2026.Gomoku"
+        "NAN2026.Gomoku",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
 using NUnit.Framework;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -110,16 +111,16 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(SoundManager.Instance.MasterVolume, Is.EqualTo(0.37f).Within(0.001f));
             pauseMenu.MasterVolumeSlider.value = initialMasterVolume;
 
-            Text turnText = turnStatusView.transform.Find("TurnText").GetComponent<Text>();
-            Text phaseText = turnStatusView.transform.Find("PhaseText").GetComponent<Text>();
-            Text scoreText = turnStatusView.transform.Find("ScoreText").GetComponent<Text>();
+            TMP_Text turnText = turnStatusView.transform.Find("TurnText").GetComponent<TMP_Text>();
+            TMP_Text phaseText = turnStatusView.transform.Find("PhaseText").GetComponent<TMP_Text>();
+            TMP_Text scoreText = turnStatusView.transform.Find("ScoreText").GetComponent<TMP_Text>();
             Slider combatSlider = turnStatusView.GetComponentInChildren<Slider>(true);
             Transform speedButtonRoot = hud.transform.Find("CombatSpeedPanel");
             Button speedButton = speedButtonRoot.GetComponent<Button>();
             Text speedText = speedButtonRoot.Find("SpeedText").GetComponent<Text>();
             Assert.That(turnText.text, Is.EqualTo("1턴"));
             Assert.That(phaseText.text, Is.EqualTo("적 턴"));
-            Assert.That(scoreText.text, Is.EqualTo("플레이어 0 : 0 적"));
+            Assert.That(scoreText.text, Is.EqualTo("0 : 0"));
             Assert.That(combatSlider.gameObject.activeSelf, Is.False);
             Assert.That(speedButtonRoot.gameObject.activeSelf, Is.True);
             Assert.That(speedText.text, Is.EqualTo("x1"));

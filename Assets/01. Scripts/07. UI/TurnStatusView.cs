@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,9 +14,9 @@ namespace NAN2026.Gomoku
     [RequireComponent(typeof(RectTransform))]
     public sealed class TurnStatusView : MonoBehaviour
     {
-        [SerializeField] private Text turnText;
-        [SerializeField] private Text phaseText;
-        [SerializeField] private Text scoreText;
+        [SerializeField] private TMP_Text turnText;
+        [SerializeField] private TMP_Text phaseText;
+        [SerializeField] private TMP_Text scoreText;
         [SerializeField] private GameObject combatTimerRoot;
         [SerializeField] private Slider combatTimerSlider;
 
@@ -27,7 +28,7 @@ namespace NAN2026.Gomoku
         {
             turnText.text = $"{Mathf.Max(1, turnNumber)}턴";
             phaseText.text = PhaseLabel(phase);
-            scoreText.text = $"플레이어 {Mathf.Max(0, playerScore)} : {Mathf.Max(0, enemyScore)} 적";
+            scoreText.text = $"{Mathf.Max(0, playerScore)} : {Mathf.Max(0, enemyScore)}";
         }
 
         public void ShowCombatTimer(float duration)

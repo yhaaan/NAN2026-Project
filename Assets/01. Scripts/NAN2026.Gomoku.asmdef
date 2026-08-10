@@ -4,6 +4,7 @@
     "references": [
         "GUID:8d9e84799a3968d4ba38c55892d14093",
         "Unity.InputSystem",
-        "Unity.Cinemachine"
+        "Unity.Cinemachine",
+        "Unity.TextMeshPro"
     ]
 }

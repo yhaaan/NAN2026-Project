@@ -2,7 +2,8 @@
     "name": "NAN2026.Gomoku.PlayModeTests",
     "rootNamespace": "NAN2026.Gomoku.Tests",
     "references": [
-        "NAN2026.Gomoku"
+        "NAN2026.Gomoku",
+        "Unity.TextMeshPro"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"

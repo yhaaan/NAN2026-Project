@@ -22,7 +22,7 @@ MonoBehaviour:
   maxHealth: 130
   power: 34
   range: 3
-  actionInterval: 2.4
+  actionInterval: 0.7
   abilityPower: 0
   abilityRatio: 0
   roleColor: {r: 1, g: 1, b: 1, a: 1}

@@ -16,14 +16,14 @@ MonoBehaviour:
   displayName: "\uB2CC\uC790"
   description: "\uC8FC\uBCC0\uC5D0 \uC544\uAD70\uC774 \uC5C6\uC73C\uBA74 \uACF5\uACA9\uB825\uC774
     26\uC73C\uB85C \uC99D\uAC00\uD569\uB2C8\uB2E4"
-  grade: 1
+  grade: 2
   role: 1
   ability: 3
   maxHealth: 105
   power: 6
   range: 1
   actionInterval: 0.7
-  abilityPower: 26
+  abilityPower: 20
   abilityRatio: 0
   roleColor: {r: 1, g: 1, b: 1, a: 1}
   roleIcon: {fileID: 7137143241422007581, guid: 5cecd20b52bd639428c0904114f17aa8, type: 3}

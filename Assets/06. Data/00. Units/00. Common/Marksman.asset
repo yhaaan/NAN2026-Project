@@ -19,7 +19,7 @@ MonoBehaviour:
   role: 3
   ability: 0
   maxHealth: 85
-  power: 14
+  power: 24
   range: 2
   actionInterval: 1.2
   abilityPower: 0

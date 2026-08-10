@@ -15,7 +15,7 @@ MonoBehaviour:
   unitId: rare-bomb-soldier
   displayName: "\uD3ED\uD0C4\uBCD1"
   description: "\uC0AC\uB9DD \uC2DC \uC8FC\uBCC0 1\uCE78\uC758 \uBAA8\uB4E0 \uC720\uB2DB\uC5D0\uAC8C
-    40 \uD53C\uD574\uB97C \uC90D\uB2C8\uB2E4"
+    120 \uD53C\uD574\uB97C \uC90D\uB2C8\uB2E4"
   grade: 1
   role: 1
   ability: 2
@@ -23,7 +23,7 @@ MonoBehaviour:
   power: 10
   range: 1
   actionInterval: 1.4
-  abilityPower: 40
+  abilityPower: 120
   abilityRatio: 0
   roleColor: {r: 1, g: 1, b: 1, a: 1}
   roleIcon: {fileID: 7137143241422007581, guid: 5cecd20b52bd639428c0904114f17aa8, type: 3}

@@ -20,9 +20,9 @@ MonoBehaviour:
   role: 2
   ability: 1
   maxHealth: 90
-  power: 11
+  power: 9
   range: 1
-  actionInterval: 1.4
+  actionInterval: 1.5
   abilityPower: 0
   abilityRatio: 0
   roleColor: {r: 0.25, g: 0.85, b: 0.42, a: 1}

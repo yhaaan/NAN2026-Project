@@ -99,17 +99,13 @@ namespace NAN2026.Gomoku
             }
         }
 
-        public void PrepareForGame(bool hosting)
+        public void PrepareForGame(int seed)
         {
             matchPending = true;
             setupReceived = null;
-            seedAvailable = hosting;
+            seedAvailable = true;
             nextReadySendTime = 0f;
-            if (hosting)
-            {
-                matchSeed = unchecked(Environment.TickCount ^ Guid.NewGuid().GetHashCode());
-            }
-
+            matchSeed = seed;
             EnsureHandlersRegistered();
         }
 

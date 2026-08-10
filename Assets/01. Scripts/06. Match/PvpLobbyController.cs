@@ -23,10 +23,13 @@ namespace NAN2026.Gomoku
         private const string PrototypePropertyValue = "nan2026-pvp-v1";
         private const string NicknamePropertyKey = "nickname";
         private const string MatchStatePropertyKey = "matchState";
+        private const string MatchSeedPropertyKey = "matchSeed";
         private const string WaitingState = "waiting";
         private const string StartedState = "started";
         private const int MaxPlayers = 2;
         private const int MaxVisibleRooms = 7;
+        private static readonly string AuthenticationProfile =
+            $"pvp_{Guid.NewGuid():N}".Substring(0, 28);
 
         private TMP_FontAsset boldFont;
         private TMP_FontAsset lightFont;
@@ -89,6 +92,17 @@ namespace NAN2026.Gomoku
             }
         }
 
+
+        private void Update()
+        {
+            if (!startingGame
+                && currentSession != null
+                && !currentSession.IsHost
+                && IsGameStarted())
+            {
+                BeginGame();
+            }
+        }
 
         private void CreateOverlay()
         {
@@ -285,6 +299,7 @@ namespace NAN2026.Gomoku
         {
             if (initialized)
             {
+                EnsureNetworkManager();
                 return true;
             }
 
@@ -293,7 +308,8 @@ namespace NAN2026.Gomoku
             {
                 if (UnityServices.State == ServicesInitializationState.Uninitialized)
                 {
-                    await UnityServices.InitializeAsync();
+                    await UnityServices.InitializeAsync(
+                        new InitializationOptions().SetProfile(AuthenticationProfile));
                 }
 
                 if (!AuthenticationService.Instance.IsSignedIn)
@@ -334,6 +350,9 @@ namespace NAN2026.Gomoku
             DontDestroyOnLoad(networkObject);
 
             UnityTransport transport = networkObject.AddComponent<UnityTransport>();
+#if UNITY_WEBGL && !UNITY_EDITOR
+            transport.UseWebSockets = true;
+#endif
             NetworkManager networkManager = networkObject.AddComponent<NetworkManager>();
             networkManager.NetworkConfig = new NetworkConfig
             {
@@ -471,7 +490,9 @@ namespace NAN2026.Gomoku
                             new SessionProperty(WaitingState, VisibilityPropertyOptions.Member)
                         }
                     }
-                }.WithRelayNetwork();
+                }
+                    .WithRelayNetwork()
+                    .WithNetworkOptions(CreateNetworkOptions());
 
                 currentSession = await MultiplayerService.Instance.CreateSessionAsync(options);
                 SubscribeToSession();
@@ -480,6 +501,7 @@ namespace NAN2026.Gomoku
             catch (Exception exception)
             {
                 currentSession = null;
+                ResetNetworkManagerAfterFailure();
                 browserStatusText.text = "방 생성에 실패했습니다. 잠시 후 다시 시도해주세요.";
                 Debug.LogException(exception, this);
             }
@@ -508,7 +530,7 @@ namespace NAN2026.Gomoku
                 {
                     Type = SessionType,
                     PlayerProperties = CreatePlayerProperties(nickname)
-                };
+                }.WithNetworkOptions(CreateNetworkOptions());
 
                 currentSession = await MultiplayerService.Instance.JoinSessionByIdAsync(sessionId, options);
                 SubscribeToSession();
@@ -517,6 +539,7 @@ namespace NAN2026.Gomoku
             catch (Exception exception)
             {
                 currentSession = null;
+                ResetNetworkManagerAfterFailure();
                 browserStatusText.text = "방에 입장하지 못했습니다. 목록을 새로고침해주세요.";
                 Debug.LogException(exception, this);
                 shouldRefresh = true;
@@ -541,6 +564,34 @@ namespace NAN2026.Gomoku
                     new PlayerProperty(nickname, VisibilityPropertyOptions.Member)
                 }
             };
+        }
+
+        private static NetworkOptions CreateNetworkOptions()
+        {
+            return new NetworkOptions
+            {
+#if UNITY_EDITOR
+                RelayProtocol = RelayProtocol.UDP
+#else
+                RelayProtocol = RelayProtocol.Default
+#endif
+            };
+        }
+
+        private static void ResetNetworkManagerAfterFailure()
+        {
+            NetworkManager networkManager = NetworkManager.Singleton;
+            if (networkManager == null)
+            {
+                return;
+            }
+
+            if (networkManager.IsListening)
+            {
+                networkManager.Shutdown();
+            }
+
+            Destroy(networkManager.gameObject);
         }
 
         private string GetNickname()
@@ -670,6 +721,10 @@ namespace NAN2026.Gomoku
                 hostSession.SetProperty(
                     MatchStatePropertyKey,
                     new SessionProperty(StartedState, VisibilityPropertyOptions.Member));
+                int matchSeed = unchecked(Environment.TickCount ^ Guid.NewGuid().GetHashCode());
+                hostSession.SetProperty(
+                    MatchSeedPropertyKey,
+                    new SessionProperty(matchSeed.ToString(), VisibilityPropertyOptions.Member));
                 await hostSession.SavePropertiesAsync();
                 BeginGame();
             }
@@ -695,10 +750,35 @@ namespace NAN2026.Gomoku
                 return;
             }
 
-            PvpMatchCoordinator.Instance?.PrepareForGame(currentSession != null && currentSession.IsHost);
+            if (!TryGetMatchSeed(out int matchSeed))
+            {
+                waitingStatusText.text = "게임 동기화 정보를 기다리는 중입니다...";
+                return;
+            }
+
+            NetworkManager networkManager = NetworkManager.Singleton;
+            PvpMatchCoordinator coordinator = PvpMatchCoordinator.Instance;
+            if (networkManager == null
+                || coordinator == null
+                || !networkManager.IsListening
+                || (!networkManager.IsHost && !networkManager.IsConnectedClient))
+            {
+                waitingStatusText.text = "Relay 연결을 완료하는 중입니다...";
+                return;
+            }
+
+            coordinator.PrepareForGame(matchSeed);
             startingGame = true;
             SetBusy(true);
             SceneTransitionController.LoadMainGame();
+        }
+
+        private bool TryGetMatchSeed(out int matchSeed)
+        {
+            matchSeed = 0;
+            return currentSession != null
+                && currentSession.Properties.TryGetValue(MatchSeedPropertyKey, out SessionProperty property)
+                && int.TryParse(property.Value, out matchSeed);
         }
 
         private async void LeaveRoom()

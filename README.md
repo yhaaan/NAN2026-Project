@@ -3,6 +3,11 @@
 <div align="center">
   <h1><a href="https://yhaaan.github.io/NAN2026-Project/">🎮 지금 바로 플레이하기(클릭)</a></h1>
   <p><strong>설치 없이 웹 브라우저에서 바로 플레이할 수 있습니다.</strong></p>
+
+  ---
+  <p>2026/08/11/AM03:09 추가</p>
+  PvP를 만들었는데 생각보다 재밌어서 링크 첨부합니다. 이건 제출 시간이 지나고 구현한 것으로 기존 위 링크에 적용시키지 않았습니다.
+  <h1><a href="https://dotoridoguldan.itch.io/omokheros?secret=Rgr1bGfnSkg4tEuYVwuQwjqwhXk">🎮 지금 바로 PVP 플레이하기(클릭)</a></h1>
 </div>
 
 ---

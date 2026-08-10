@@ -9,6 +9,8 @@ namespace NAN2026.Gomoku
         [SerializeField] private Button startButton;
         [SerializeField] private Button guideButton;
         [SerializeField] private Button exitButton;
+        [SerializeField] private Button pvpButton;
+        [SerializeField] private GameObject pvpLobbyOverlay;
         [SerializeField] private TMP_FontAsset cardNewsBoldFont;
         [SerializeField] private TMP_FontAsset cardNewsLightFont;
         [SerializeField] private AudioClip titleMusic;
@@ -16,6 +18,7 @@ namespace NAN2026.Gomoku
 
         private FirstMatchCardNewsView guideCardNews;
 
+        private PvpLobbyController pvpLobbyController;
         public Button StartButton => startButton;
         public Button GuideButton => guideButton;
         public Button ExitButton => exitButton;
@@ -28,6 +31,13 @@ namespace NAN2026.Gomoku
         {
             Time.timeScale = 1f;
             SoundManager.Instance.PlayMusic(titleMusic, musicFadeDuration);
+
+            pvpLobbyController = gameObject.AddComponent<PvpLobbyController>();
+            pvpLobbyController.Initialize(
+                pvpButton,
+                pvpLobbyOverlay,
+                cardNewsBoldFont,
+                cardNewsLightFont);
 
             if (startButton == null)
             {

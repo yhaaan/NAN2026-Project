@@ -15,6 +15,75 @@ namespace NAN2026.Gomoku.Tests
     public sealed class GomokuMvpPlayModeTests
     {
         [UnityTest]
+        public IEnumerator ShopHoverShowsUnitAndRoleDescriptions()
+        {
+            AsyncOperation load = SceneManager.LoadSceneAsync("GomokuMvp", LoadSceneMode.Single);
+            while (!load.isDone)
+            {
+                yield return null;
+            }
+
+            yield return null;
+
+            FieldInfo boundDefinitionField = typeof(ShopSlotView).GetField(
+                "boundDefinition",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            ShopSlotView hoveredSlot = null;
+            UnitDefinitionSO hoveredDefinition = null;
+            float deadline = Time.realtimeSinceStartup + 5f;
+
+            while (Time.realtimeSinceStartup < deadline && hoveredDefinition == null)
+            {
+                ShopSlotView[] slots = Object.FindObjectsByType<ShopSlotView>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None);
+                foreach (ShopSlotView slot in slots)
+                {
+                    if (!slot.gameObject.activeInHierarchy)
+                    {
+                        continue;
+                    }
+
+                    hoveredDefinition =
+                        boundDefinitionField.GetValue(slot) as UnitDefinitionSO;
+                    if (hoveredDefinition != null)
+                    {
+                        hoveredSlot = slot;
+                        break;
+                    }
+                }
+
+                yield return null;
+            }
+
+            Assert.That(hoveredSlot, Is.Not.Null);
+            Assert.That(hoveredDefinition, Is.Not.Null);
+
+            UnitInfoPanelView infoPanel = Object.FindFirstObjectByType<UnitInfoPanelView>(
+                FindObjectsInactive.Include);
+            hoveredSlot.OnPointerEnter(null);
+            yield return new WaitForSecondsRealtime(0.25f);
+
+            TMP_Text name = infoPanel.transform.Find("Name").GetComponent<TMP_Text>();
+            TMP_Text abilityName = infoPanel.transform.Find(
+                "UnitDescriptionPanel/AbilityName").GetComponent<TMP_Text>();
+            TMP_Text unitDescription = infoPanel.transform.Find(
+                "UnitDescriptionPanel/UnitDescription").GetComponent<TMP_Text>();
+            TMP_Text roleName = infoPanel.transform.Find(
+                "RoleAbilityPanel/RoleName").GetComponent<TMP_Text>();
+            TMP_Text roleDescription = infoPanel.transform.Find(
+                "RoleAbilityPanel/RoleDescription").GetComponent<TMP_Text>();
+
+            Assert.That(infoPanel.IsVisible, Is.True);
+            Assert.That(name.text, Is.EqualTo(hoveredDefinition.DisplayName));
+            Assert.That(abilityName.text, Is.Not.Empty);
+            Assert.That(unitDescription.text, Is.EqualTo(hoveredDefinition.Description));
+            Assert.That(roleName.text, Does.Contain(hoveredDefinition.RoleDisplayName));
+            Assert.That(roleDescription.text, Is.EqualTo(hoveredDefinition.RoleDescription));
+
+            hoveredSlot.OnPointerExit(null);
+        }
+        [UnityTest]
         public IEnumerator SceneStartsWithControllerAndFiveShopSlots()
         {
             AsyncOperation load = SceneManager.LoadSceneAsync("GomokuMvp", LoadSceneMode.Single);
@@ -282,6 +351,28 @@ namespace NAN2026.Gomoku.Tests
 
                 Assert.That(roleIcon.gameObject.activeSelf, Is.True);
             }
+
+            ShopSlotView hoveredShopSlot = shopSlots[0];
+            FieldInfo boundDefinitionField = typeof(ShopSlotView).GetField(
+                "boundDefinition",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            UnitDefinitionSO hoveredShopDefinition =
+                boundDefinitionField.GetValue(hoveredShopSlot) as UnitDefinitionSO;
+            hoveredShopSlot.OnPointerEnter(null);
+            yield return null;
+
+            TMP_Text shopHoverName = infoPanel.transform.Find("Name").GetComponent<TMP_Text>();
+            TMP_Text shopHoverAbilityName = infoPanel.transform.Find(
+                "UnitDescriptionPanel/AbilityName").GetComponent<TMP_Text>();
+            TMP_Text shopHoverDescription = infoPanel.transform.Find(
+                "UnitDescriptionPanel/UnitDescription").GetComponent<TMP_Text>();
+            Assert.That(shopHoverName.text, Is.EqualTo(hoveredShopDefinition.DisplayName));
+            Assert.That(shopHoverDescription.text, Is.EqualTo(hoveredShopDefinition.Description));
+            Assert.That(shopHoverAbilityName.text, Is.Not.Empty);
+            Assert.That(infoPanel.IsVisible, Is.True);
+            hoveredShopSlot.OnPointerExit(null);
+            yield return null;
+
             Assert.That(boardView.WorldView.ActiveUnitViewCount, Is.EqualTo(1));
             UnitHealthBarView[] initialHealthBars = Object.FindObjectsByType<UnitHealthBarView>(
                 FindObjectsInactive.Exclude,
@@ -312,6 +403,8 @@ namespace NAN2026.Gomoku.Tests
             TMP_Text healthValue = infoPanel.transform.Find("HealthSlider/ValueText").GetComponent<TMP_Text>();
             Image rarityPanel = infoPanel.GetComponent<Image>();
             Image infoRoleIcon = infoPanel.transform.Find("RoleIcon").GetComponent<Image>();
+            TMP_Text unitAbilityName = infoPanel.transform.Find("UnitDescriptionPanel/AbilityName").GetComponent<TMP_Text>();
+            TMP_Text unitDescription = infoPanel.transform.Find("UnitDescriptionPanel/UnitDescription").GetComponent<TMP_Text>();
             TMP_Text roleName = infoPanel.transform.Find("RoleAbilityPanel/RoleName").GetComponent<TMP_Text>();
             TMP_Text roleDescription = infoPanel.transform.Find("RoleAbilityPanel/RoleDescription").GetComponent<TMP_Text>();
 
@@ -320,6 +413,8 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(infoName.text, Does.Not.Contain("■ " + enemyUnit.Definition.RoleDisplayName));
             Assert.That(infoRoleIcon.sprite.name, Does.StartWith("역할_"));
             Assert.That(roleName.text, Does.Contain(enemyUnit.Definition.RoleDisplayName));
+            Assert.That(unitAbilityName.text, Is.Not.Empty);
+            Assert.That(unitDescription.text, Is.EqualTo(enemyUnit.Definition.Description));
             Assert.That(roleDescription.text, Is.EqualTo(enemyUnit.Definition.RoleDescription));
             Assert.That(infoDetails.text, Does.Contain("<color=#FF0000FF>"));
             Assert.That(infoDetails.text, Does.Contain("<color=#0000FFFF>"));

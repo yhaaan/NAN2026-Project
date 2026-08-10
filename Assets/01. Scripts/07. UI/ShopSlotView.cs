@@ -47,6 +47,8 @@ namespace NAN2026.Gomoku
 
         private int slotIndex;
         private Action<int> onSelected;
+        private Action<UnitDefinitionSO> onHoverChanged;
+        private UnitDefinitionSO boundDefinition;
         private Outline stateOutline;
         private bool isHovered;
         private Color gradeBackgroundTint = Color.white;
@@ -55,10 +57,14 @@ namespace NAN2026.Gomoku
         public AudioClip ClickSfx => clickSfx;
         public AudioClip HoverSfx => hoverSfx;
 
-        public void Initialize(int index, Action<int> selectionHandler)
+        public void Initialize(
+            int index,
+            Action<int> selectionHandler,
+            Action<UnitDefinitionSO> hoverHandler = null)
         {
             slotIndex = index;
             onSelected = selectionHandler;
+            onHoverChanged = hoverHandler;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(HandleClick);
             ConfigurePresentation();
@@ -66,6 +72,7 @@ namespace NAN2026.Gomoku
 
         public void Bind(UnitDefinitionSO definition, bool selected, bool interactable)
         {
+            boundDefinition = definition;
             nameText.text = $"<b>{definition.DisplayName}</b>";
             gradeText.text = definition.GradeDisplayName;
             Color mutedBlack = new Color32(0, 0, 0, 180);
@@ -99,6 +106,11 @@ namespace NAN2026.Gomoku
             gradeBackgroundTint = Color.Lerp(Color.white, definition.GradeColor, 0.13f);
             button.interactable = interactable;
             SetSelected(selected);
+
+            if (isHovered)
+            {
+                onHoverChanged?.Invoke(boundDefinition);
+            }
         }
 
         public void SetSelected(bool selected)
@@ -129,12 +141,25 @@ namespace NAN2026.Gomoku
 
             isHovered = true;
             RefreshOutline();
+            onHoverChanged?.Invoke(boundDefinition);
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
             isHovered = false;
             RefreshOutline();
+            onHoverChanged?.Invoke(null);
+        }
+
+        private void OnDisable()
+        {
+            if (!isHovered)
+            {
+                return;
+            }
+
+            isHovered = false;
+            onHoverChanged?.Invoke(null);
         }
 
         private void HandleClick()

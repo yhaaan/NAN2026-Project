@@ -44,6 +44,7 @@ namespace NAN2026.Gomoku
         private int combatSpeed = 1;
         private StoneColor playerSide = StoneColor.White;
         private UnitInfoPanelView unitInfoPanel;
+        private UnitDefinitionSO hoveredShopDefinition;
         private CombatResolver combat;
         private RectTransform shopRect;
         private CanvasGroup shopCanvasGroup;
@@ -93,6 +94,12 @@ namespace NAN2026.Gomoku
 
         private void LateUpdate()
         {
+            if (hoveredShopDefinition != null)
+            {
+                unitInfoPanel?.Refresh(hoveredShopDefinition);
+                return;
+            }
+
             BoardUnit hoveredUnit = boardView != null
                 && boardView.PointerState.Mode == BoardPointerMode.UnitHover
                 ? boardView.PointerState.HoveredUnit
@@ -123,7 +130,7 @@ namespace NAN2026.Gomoku
 
             for (int index = 0; index < shopSlots.Length; index++)
             {
-                shopSlots[index].Initialize(index, HandleShopSelection);
+                shopSlots[index].Initialize(index, HandleShopSelection, HandleShopHover);
             }
 
             rerollButton.onClick.RemoveAllListeners();
@@ -521,6 +528,11 @@ namespace NAN2026.Gomoku
         private void HandleShopSelection(int index)
         {
             onShopSelection?.Invoke(index);
+        }
+
+        private void HandleShopHover(UnitDefinitionSO definition)
+        {
+            hoveredShopDefinition = definition;
         }
 
         private void InitializeShopPresentation()

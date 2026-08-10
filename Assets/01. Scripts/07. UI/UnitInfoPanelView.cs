@@ -14,6 +14,8 @@ namespace NAN2026.Gomoku
         [SerializeField] private Image roleIconImage;
         [SerializeField] private TMP_Text nameText;
         [SerializeField] private TMP_Text detailsText;
+        [SerializeField] private TMP_Text unitAbilityNameText;
+        [SerializeField] private TMP_Text unitDescriptionText;
         [SerializeField] private TMP_Text roleNameText;
         [SerializeField] private TMP_Text roleDescriptionText;
         [SerializeField] private Slider healthSlider;
@@ -78,27 +80,7 @@ namespace NAN2026.Gomoku
 
             Show();
             UnitDefinitionSO definition = unit.Definition;
-            if (panelImage != null)
-            {
-                panelImage.sprite = GetPanelSprite(definition.Grade);
-            }
-
-            nameText.text = definition.DisplayName;
-            Sprite roleSprite = GetRoleSprite(definition.Role);
-            roleIconImage.sprite = roleSprite;
-            roleIconImage.preserveAspect = true;
-            roleIconImage.gameObject.SetActive(roleSprite != null);
-            roleNameText.text = $"-{definition.RoleDisplayName}-";
-            roleDescriptionText.text = definition.RoleDescription;
-
-            string power = definition.IsSupport
-                ? definition.IsHealer ? "회복력" : "지원력"
-                : "공격력";
-            string attackColor = ColorUtility.ToHtmlStringRGBA(attackValueColor);
-            string rangeColor = ColorUtility.ToHtmlStringRGBA(rangeValueColor);
-            detailsText.text =
-                $" {power}  <color=#{attackColor}><b>{definition.Power}</b></color>         "
-                + $"사거리  <color=#{rangeColor}><b>{definition.Range}</b></color>";
+            RefreshDefinition(definition);
 
             healthSlider.minValue = 0f;
             healthSlider.maxValue = definition.MaxHealth;
@@ -125,6 +107,61 @@ namespace NAN2026.Gomoku
             }
         }
 
+        public void Refresh(UnitDefinitionSO definition)
+        {
+            if (definition == null)
+            {
+                Hide();
+                return;
+            }
+
+            Show();
+            RefreshDefinition(definition);
+
+            healthSlider.minValue = 0f;
+            healthSlider.maxValue = definition.MaxHealth;
+            healthSlider.SetValueWithoutNotify(definition.MaxHealth);
+            healthValueText.text =
+                $"<b>{definition.MaxHealth} / {definition.MaxHealth}</b>";
+
+            float interval = Mathf.Max(0.1f, definition.ActionInterval);
+            cooldownSlider.minValue = 0f;
+            cooldownSlider.maxValue = interval;
+            cooldownSlider.SetValueWithoutNotify(interval);
+            cooldownValueText.text =
+                $"<b>{interval:0.0}s / {interval:0.0}s</b>";
+        }
+
+        private void RefreshDefinition(UnitDefinitionSO definition)
+        {
+            if (panelImage != null)
+            {
+                panelImage.sprite = GetPanelSprite(definition.Grade);
+            }
+
+            nameText.text = definition.DisplayName;
+            Sprite roleSprite = GetRoleSprite(definition.Role);
+            roleIconImage.sprite = roleSprite;
+            roleIconImage.preserveAspect = true;
+            roleIconImage.gameObject.SetActive(roleSprite != null);
+
+            string abilityName = definition.Ability == UnitAbility.None
+                ? definition.Action?.DisplayName ?? "기본 행동"
+                : definition.AbilityDisplayName;
+            unitAbilityNameText.text = $"-{abilityName}-";
+            unitDescriptionText.text = definition.Description;
+            roleNameText.text = $"-{definition.RoleDisplayName}-";
+            roleDescriptionText.text = definition.RoleDescription;
+
+            string power = definition.IsSupport
+                ? definition.IsHealer ? "회복력" : "지원력"
+                : "공격력";
+            string attackColor = ColorUtility.ToHtmlStringRGBA(attackValueColor);
+            string rangeColor = ColorUtility.ToHtmlStringRGBA(rangeValueColor);
+            detailsText.text =
+                $" {power}  <color=#{attackColor}><b>{definition.Power}</b></color>         "
+                + $"사거리  <color=#{rangeColor}><b>{definition.Range}</b></color>";
+        }
         private Sprite GetPanelSprite(UnitGrade grade)
         {
             switch (grade)

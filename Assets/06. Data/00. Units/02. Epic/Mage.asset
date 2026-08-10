@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: NAN2026.Gomoku::NAN2026.Gomoku.UnitDefinitionSO
   unitId: epic-mage
   displayName: "\uB9C8\uBC95\uC0AC"
-  description: "\uB300\uC0C1 \uC8FC\uBCC0 1\uCE78\uC758 \uC801\uC5D0\uAC8C \uBA54\uD14C\uC624
-    \uD53C\uD574\uB97C \uC90D\uB2C8\uB2E4"
+  description: "\uBA54\uD14C\uC624\uB97C \uB0A0\uB824 \uB300\uC0C1\uACFC \uC8FC\uBCC0
+    1\uCE78\uC758 \uC801\uC5D0\uAC8C \uAC15\uB825\uD55C \uD53C\uD574\uB97C \uC90D\uB2C8\uB2E4"
   grade: 2
   role: 4
   ability: 9
-  maxHealth: 105
-  power: 38
+  maxHealth: 120
+  power: 500
   range: 3
-  actionInterval: 3
+  actionInterval: 6
   abilityPower: 0
   abilityRatio: 0
   roleColor: {r: 1, g: 1, b: 1, a: 1}

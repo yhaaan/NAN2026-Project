@@ -19,7 +19,7 @@ MonoBehaviour:
   grade: 1
   role: 0
   ability: 4
-  maxHealth: 270
+  maxHealth: 300
   power: 7
   range: 1
   actionInterval: 1.6

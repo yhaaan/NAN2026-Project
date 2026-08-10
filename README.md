@@ -1,5 +1,12 @@
 # NAN2026-Project
 
+<div align="center">
+  <h1><a href="https://yhaaan.github.io/NAN2026-Project/">🎮 지금 바로 플레이하기</a></h1>
+  <p><strong>설치 없이 웹 브라우저에서 바로 플레이할 수 있습니다.</strong></p>
+</div>
+
+---
+
 AI 에이전트와 함께 개발하는 Unity 게임 프로젝트입니다. 현재는 Unity 프로젝트의 초기 구성이 완료된 단계입니다.
 
 ## 개발 환경

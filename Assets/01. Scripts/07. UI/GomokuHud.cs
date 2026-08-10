@@ -23,15 +23,20 @@ namespace NAN2026.Gomoku
         [SerializeField] private Button rerollButton;
         [SerializeField] private ShopSlotView[] shopSlots;
         [SerializeField] private GameObject resultPanel;
-        [SerializeField] private Text resultTitleText;
-        [SerializeField] private Text resultScoreText;
+        [SerializeField] private TMP_Text resultTitleText;
+        [SerializeField] private TMP_Text resultScoreText;
         [SerializeField] private Button continueButton;
-        [SerializeField] private Text continueButtonText;
+        [SerializeField] private TMP_Text continueButtonText;
 
         [Header("Shop Transition")]
         [SerializeField, Min(0f)] private float shopShowDuration = 0.38f;
         [SerializeField, Min(0f)] private float shopHideDuration = 0.32f;
         [SerializeField, Min(0f)] private float shopHiddenPadding = 18f;
+
+        [Header("Result Transition")]
+        [SerializeField, Min(0f)] private float resultShowDuration = 0.32f;
+        [SerializeField, Range(0.5f, 1f)] private float resultStartScale = 0.86f;
+        [SerializeField, Range(0f, 1f)] private float resultBackdropOpacity = 0.74f;
 
         private Action<int> onShopSelection;
         private Action<int, int> onBoardClick;
@@ -49,6 +54,12 @@ namespace NAN2026.Gomoku
         private bool shopPresentationInitialized;
         private bool shopVisible;
         private bool shopShowWaitingForCamera;
+        private RectTransform resultRect;
+        private CanvasGroup resultCanvasGroup;
+        private GameObject resultBackdrop;
+        private CanvasGroup resultBackdropCanvasGroup;
+        private Vector3 resultShownScale;
+        private Sequence resultTransition;
 
         public event Action<bool, float, Action> CameraFramingRequested;
 
@@ -61,12 +72,16 @@ namespace NAN2026.Gomoku
             : null;
         public float ShopShowDuration => shopShowDuration;
         public float ShopHideDuration => shopHideDuration;
+        public float ResultShowDuration => resultShowDuration;
+        public float ResultStartScale => resultStartScale;
+        public float ResultBackdropOpacity => resultBackdropOpacity;
         public Button CombatSpeedButton => combatSpeedButton;
         public int CombatSpeed => combatSpeed;
 
         private void Awake()
         {
             InitializeShopPresentation();
+            InitializeResultPresentation();
 
             if (unitInfoPanelPrefab != null)
             {
@@ -89,6 +104,8 @@ namespace NAN2026.Gomoku
         {
             shopTransition?.Kill();
             shopTransition = null;
+            resultTransition?.Kill();
+            resultTransition = null;
         }
 
         public void Initialize(
@@ -288,10 +305,10 @@ namespace NAN2026.Gomoku
 
         public void ShowResult(string title, string score, string buttonLabel)
         {
-            resultPanel.SetActive(true);
             resultTitleText.text = title;
             resultScoreText.text = score;
             continueButtonText.text = buttonLabel;
+            PlayResultPopup();
         }
 
         public void SetResultTitle(string title)
@@ -301,7 +318,192 @@ namespace NAN2026.Gomoku
 
         public void HideResult()
         {
+            resultTransition?.Kill();
+            resultTransition = null;
+
+            if (resultRect != null)
+            {
+                resultRect.localScale = resultShownScale;
+            }
+
+            if (resultCanvasGroup != null)
+            {
+                resultCanvasGroup.alpha = 1f;
+                SetResultInteraction(false);
+            }
+
+            HideResultBackdrop();
             resultPanel.SetActive(false);
+        }
+
+        private void InitializeResultPresentation()
+        {
+            if (resultPanel == null)
+            {
+                return;
+            }
+
+            resultRect = resultPanel.transform as RectTransform;
+            resultCanvasGroup = resultPanel.GetComponent<CanvasGroup>();
+            if (resultCanvasGroup == null && Application.isPlaying)
+            {
+                resultCanvasGroup = resultPanel.AddComponent<CanvasGroup>();
+            }
+
+            if (resultRect != null)
+            {
+                resultShownScale = resultRect.localScale;
+            }
+
+            InitializeResultBackdrop();
+        }
+
+        private void InitializeResultBackdrop()
+        {
+            if (resultPanel == null || resultBackdrop != null || !Application.isPlaying)
+            {
+                return;
+            }
+
+            resultBackdrop = new GameObject(
+                "ResultBackdrop",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image),
+                typeof(CanvasGroup));
+            resultBackdrop.transform.SetParent(resultPanel.transform.parent, false);
+
+            RectTransform backdropRect = (RectTransform)resultBackdrop.transform;
+            backdropRect.anchorMin = Vector2.zero;
+            backdropRect.anchorMax = Vector2.one;
+            backdropRect.offsetMin = Vector2.zero;
+            backdropRect.offsetMax = Vector2.zero;
+            backdropRect.SetSiblingIndex(resultPanel.transform.GetSiblingIndex());
+
+            Image backdropImage = resultBackdrop.GetComponent<Image>();
+            backdropImage.color = new Color(0f, 0f, 0f, resultBackdropOpacity);
+            backdropImage.raycastTarget = true;
+
+            resultBackdropCanvasGroup = resultBackdrop.GetComponent<CanvasGroup>();
+            HideResultBackdrop();
+        }
+
+        private void PlayResultPopup()
+        {
+            if (resultRect == null || resultCanvasGroup == null)
+            {
+                InitializeResultPresentation();
+            }
+
+            resultTransition?.Kill();
+            resultTransition = null;
+            resultPanel.SetActive(true);
+            ShowResultBackdrop();
+
+            if (!Application.isPlaying
+                || !isActiveAndEnabled
+                || resultShowDuration <= Mathf.Epsilon
+                || resultRect == null
+                || resultCanvasGroup == null)
+            {
+                CompleteResultPopup();
+                return;
+            }
+
+            resultRect.localScale = resultShownScale * resultStartScale;
+            resultCanvasGroup.alpha = 0f;
+            SetResultInteraction(false);
+
+            float fadeDuration = resultShowDuration * 0.7f;
+            Tween fadeTween = DOTween
+                .To(
+                    () => resultCanvasGroup.alpha,
+                    value => resultCanvasGroup.alpha = value,
+                    1f,
+                    fadeDuration)
+                .SetEase(Ease.OutQuad);
+            Tween scaleTween = DOTween
+                .To(
+                    () => resultRect.localScale,
+                    value => resultRect.localScale = value,
+                    resultShownScale,
+                    resultShowDuration)
+                .SetEase(Ease.OutBack);
+            Tween backdropTween = DOTween
+                .To(
+                    () => resultBackdropCanvasGroup.alpha,
+                    value => resultBackdropCanvasGroup.alpha = value,
+                    1f,
+                    resultShowDuration)
+                .SetEase(Ease.OutQuad);
+            resultTransition = DOTween
+                .Sequence()
+                .Join(fadeTween)
+                .Join(scaleTween)
+                .Join(backdropTween)
+                .SetUpdate(true)
+                .SetTarget(this)
+                .OnComplete(CompleteResultPopup);
+        }
+
+        private void CompleteResultPopup()
+        {
+            resultTransition = null;
+            if (resultRect != null)
+            {
+                resultRect.localScale = resultShownScale;
+            }
+
+            if (resultCanvasGroup != null)
+            {
+                resultCanvasGroup.alpha = 1f;
+                SetResultInteraction(true);
+            }
+
+            if (resultBackdropCanvasGroup != null)
+            {
+                resultBackdropCanvasGroup.alpha = 1f;
+                resultBackdropCanvasGroup.blocksRaycasts = true;
+            }
+        }
+
+        private void ShowResultBackdrop()
+        {
+            InitializeResultBackdrop();
+            if (resultBackdropCanvasGroup == null)
+            {
+                return;
+            }
+
+            resultBackdrop.transform.SetSiblingIndex(
+                Mathf.Max(0, resultPanel.transform.GetSiblingIndex() - 1));
+            resultBackdrop.SetActive(true);
+            resultBackdropCanvasGroup.alpha = 0f;
+            resultBackdropCanvasGroup.interactable = false;
+            resultBackdropCanvasGroup.blocksRaycasts = true;
+        }
+
+        private void HideResultBackdrop()
+        {
+            if (resultBackdropCanvasGroup != null)
+            {
+                resultBackdropCanvasGroup.alpha = 0f;
+                resultBackdropCanvasGroup.interactable = false;
+                resultBackdropCanvasGroup.blocksRaycasts = false;
+            }
+
+            resultBackdrop?.SetActive(false);
+        }
+
+        private void SetResultInteraction(bool interactable)
+        {
+            if (resultCanvasGroup == null)
+            {
+                return;
+            }
+
+            resultCanvasGroup.interactable = interactable;
+            resultCanvasGroup.blocksRaycasts = interactable;
         }
 
         private void CycleCombatSpeed()

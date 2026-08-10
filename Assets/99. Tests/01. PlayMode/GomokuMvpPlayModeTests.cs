@@ -512,7 +512,7 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(SoundManager.Instance.IsMusicPlaying, Is.True);
             Assert.That(SoundManager.Instance.IsMusicLooping, Is.True);
             feedback.BindButtons();
-            Assert.That(feedback.BoundButtonCount, Is.EqualTo(1));
+            Assert.That(feedback.BoundButtonCount, Is.EqualTo(2));
             Assert.That(feedback.ClickSfx.name, Is.EqualTo("drop_002"));
             Assert.That(feedback.PitchRange, Is.EqualTo(new Vector2(0.92f, 1.08f)));
 

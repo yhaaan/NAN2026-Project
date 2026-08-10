@@ -178,47 +178,92 @@ namespace NAN2026.Gomoku.Tests
                 Assert.That(shopSlot.ClickSfx.name, Is.EqualTo("card_draw_3"));
                 Assert.That(shopSlot.HoverSfx, Is.Not.Null);
                 Assert.That(shopSlot.HoverSfx.name, Is.EqualTo("drop_002"));
-                Text unitLabel = shopSlot.transform.Find("Name").GetComponent<Text>();
-                Text statsLabel = shopSlot.transform.Find("Stats").GetComponent<Text>();
+                TMP_Text unitLabel = shopSlot.transform.Find("Name").GetComponent<TMP_Text>();
+                TMP_Text gradeLabel = shopSlot.transform.Find("Grade").GetComponent<TMP_Text>();
+                TMP_Text statsLabel = shopSlot.transform.Find("Stats").GetComponent<TMP_Text>();
                 Image cardBackground = shopSlot.GetComponent<Image>();
                 Image roleIcon = shopSlot.transform.Find("RoleIcon").GetComponent<Image>();
                 RectTransform cardRect = shopSlot.transform as RectTransform;
 
-                Assert.That(unitLabel.text, Does.Contain("■"));
-                Assert.That(unitLabel.text, Does.Contain("<size=22>"));
-                Assert.That(unitLabel.text, Does.Contain("<size=12>"));
-                Assert.That(unitLabel.text, Does.Contain("<color=#"));
-                if (unitLabel.text.Contains("일반"))
+                Assert.That(unitLabel.text, Does.StartWith("<b>"));
+                Assert.That(unitLabel.text, Does.Not.Contain("\n"));
+                Assert.That(unitLabel.text.Replace("<b>", string.Empty).Replace("</b>", string.Empty).Replace(" ", string.Empty).Length, Is.LessThanOrEqualTo(5));
+                Assert.That(unitLabel.fontSize, Is.EqualTo(20f));
+                Assert.That(unitLabel.font.name, Does.StartWith("Maplestory Bold"));
+                Assert.That(unitLabel.alignment, Is.EqualTo(TextAlignmentOptions.Left));
+                Assert.That(unitLabel.rectTransform.anchoredPosition.x, Is.EqualTo(47.2f).Within(0.01f));
+                Assert.That(unitLabel.rectTransform.anchoredPosition.y, Is.EqualTo(-18.6f).Within(0.01f));
+                Assert.That(gradeLabel.text, Is.Not.Empty);
+                Assert.That(gradeLabel.fontSize, Is.EqualTo(9f));
+                Assert.That(gradeLabel.font.name, Does.StartWith("Maplestory Light"));
+                Assert.That(gradeLabel.alignment, Is.EqualTo(TextAlignmentOptions.Right));
+                Assert.That(statsLabel.alignment, Is.EqualTo(TextAlignmentOptions.Left));
+                Assert.That(statsLabel.fontSize, Is.EqualTo(11f));
+                Assert.That(statsLabel.font.name, Does.StartWith("Maplestory Light"));
+                TMP_Text abilityNameLabel = shopSlot.transform.Find("AbilityName").GetComponent<TMP_Text>();
+                TMP_Text abilityLabel = shopSlot.transform.Find("Ability").GetComponent<TMP_Text>();
+                Assert.That(abilityNameLabel.fontSize, Is.EqualTo(11f));
+                Assert.That(abilityNameLabel.font.name, Does.StartWith("Maplestory Bold"));
+                Assert.That(abilityNameLabel.rectTransform.offsetMin.x, Is.EqualTo(12f).Within(0.01f));
+                Assert.That(abilityLabel.fontSize, Is.EqualTo(10f));
+                Assert.That(abilityLabel.font.name, Does.StartWith("Maplestory Light"));
+                Assert.That(abilityLabel.rectTransform.offsetMin.x, Is.EqualTo(12f).Within(0.01f));
+                Assert.That(abilityNameLabel.gameObject.activeSelf, Is.EqualTo(abilityLabel.gameObject.activeSelf));
+                if (abilityLabel.gameObject.activeSelf)
                 {
-                    Assert.That(unitLabel.text, Does.Contain("<color=#000000>■ 일반</color>"));
+                    abilityNameLabel.ForceMeshUpdate();
+                    abilityLabel.ForceMeshUpdate();
+
+                    TMP_CharacterInfo nameCharacter = abilityNameLabel.textInfo.characterInfo[0];
+                    Assert.That(nameCharacter.fontAsset.name, Does.StartWith("Maplestory Bold"));
+                    Assert.That(nameCharacter.color, Is.EqualTo((Color32)unitLabel.color));
+
+                    TMP_CharacterInfo descriptionCharacter = default;
+                    bool foundDescriptionGlyph = false;
+                    foreach (TMP_CharacterInfo character in abilityLabel.textInfo.characterInfo)
+                    {
+                        if (!character.isVisible)
+                        {
+                            continue;
+                        }
+
+                        descriptionCharacter = character;
+                        foundDescriptionGlyph = true;
+                        break;
+                    }
+
+                    Assert.That(foundDescriptionGlyph, Is.True);
+                    Assert.That(descriptionCharacter.fontAsset.name, Does.StartWith("Maplestory Light"));
+                    Color32 expectedDescriptionColor = gradeLabel.color;
+                    Assert.That(descriptionCharacter.color, Is.EqualTo(expectedDescriptionColor));
                 }
-                Assert.That(unitLabel.text, Does.Not.Contain(" · "));
-                Assert.That(unitLabel.alignment, Is.EqualTo(TextAnchor.UpperLeft));
-                Assert.That(unitLabel.rectTransform.offsetMax.y, Is.EqualTo(-8f).Within(0.01f));
-                Assert.That(statsLabel.alignment, Is.EqualTo(TextAnchor.UpperLeft));
-                Assert.That(statsLabel.fontSize, Is.EqualTo(13));
-                Assert.That(statsLabel.rectTransform.offsetMin.x, Is.EqualTo(22f).Within(0.01f));
-                Text abilityLabel = shopSlot.transform.Find("Ability").GetComponent<Text>();
-                Assert.That(abilityLabel.fontSize, Is.EqualTo(13));
-                Assert.That(abilityLabel.rectTransform.offsetMin.x, Is.EqualTo(22f).Within(0.01f));
-                Text healthStatIcon = shopSlot.transform.Find("HealthStatIcon").GetComponent<Text>();
-                Text powerStatIcon = shopSlot.transform.Find("PowerStatIcon").GetComponent<Text>();
-                Text rangeStatIcon = shopSlot.transform.Find("RangeStatIcon").GetComponent<Text>();
-                Text intervalStatIcon = shopSlot.transform.Find("IntervalStatIcon").GetComponent<Text>();
-                Assert.That(healthStatIcon.text, Is.EqualTo("♥"));
-                Assert.That(powerStatIcon.text, Is.EqualTo("⚔"));
-                Assert.That(rangeStatIcon.text, Is.EqualTo("◎"));
-                Assert.That(intervalStatIcon.text, Is.EqualTo("⏱"));
-                Assert.That(healthStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(22f).Within(0.01f));
-                Assert.That(rangeStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(22f).Within(0.01f));
-                Assert.That(powerStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(108f).Within(0.01f));
-                Assert.That(intervalStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(108f).Within(0.01f));
-                Assert.That(intervalStatIcon.rectTransform.anchoredPosition.y, Is.EqualTo(4f).Within(0.01f));
+                Image healthStatIcon = shopSlot.transform.Find("HealthStatIcon").GetComponent<Image>();
+                Image powerStatIcon = shopSlot.transform.Find("PowerStatIcon").GetComponent<Image>();
+                Image rangeStatIcon = shopSlot.transform.Find("RangeStatIcon").GetComponent<Image>();
+                Image intervalStatIcon = shopSlot.transform.Find("IntervalStatIcon").GetComponent<Image>();
+                TMP_Text healthStatValue = shopSlot.transform.Find("HealthStatValue").GetComponent<TMP_Text>();
+                TMP_Text rangeStatValue = shopSlot.transform.Find("RangeStatValue").GetComponent<TMP_Text>();
+                TMP_Text intervalStatValue = shopSlot.transform.Find("IntervalStatValue").GetComponent<TMP_Text>();
+                Assert.That(healthStatValue.color, Is.EqualTo(gradeLabel.color));
+                Assert.That(rangeStatValue.color, Is.EqualTo(gradeLabel.color));
+                Assert.That(intervalStatValue.color, Is.EqualTo(gradeLabel.color));
+                Assert.That(healthStatIcon.sprite.name, Does.StartWith("아이콘_체력"));
+                Assert.That(powerStatIcon.sprite.name, Does.StartWith("아이콘_공격력"));
+                Assert.That(rangeStatIcon.sprite.name, Does.StartWith("아이콘_사거리"));
+                Assert.That(intervalStatIcon.sprite.name, Does.StartWith("아이콘_공격시간"));
+                Assert.That(healthStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(18f).Within(0.01f));
+                Assert.That(rangeStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(74f).Within(0.01f));
+                Assert.That(powerStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(148f).Within(0.01f));
+                Assert.That(intervalStatIcon.rectTransform.anchoredPosition.x, Is.EqualTo(132f).Within(0.01f));
+                Assert.That(intervalStatIcon.rectTransform.anchoredPosition.y, Is.EqualTo(12f).Within(0.01f));
                 Assert.That(shopSlot.transform.Find("Ability"), Is.Not.Null);
                 Assert.That(cardRect.rect.size, Is.EqualTo(new Vector2(196f, 148f)));
                 Assert.That(cardBackground.color.grayscale, Is.GreaterThan(0.8f));
-                Assert.That(cardBackground.color, Is.Not.EqualTo(Color.white));
+                Assert.That(cardBackground.sprite, Is.Not.Null);
+                Assert.That(cardBackground.sprite.name, Does.StartWith("패널_"));
+                Assert.That(cardBackground.sprite.name, Does.Not.Contain("세로"));
                 Assert.That(roleIcon.sprite, Is.Not.Null);
+                Assert.That(roleIcon.sprite.name, Does.StartWith("역할_"));
                 Assert.That(roleIcon.preserveAspect, Is.True);
                 Assert.That(unitLabel.color.grayscale, Is.LessThan(0.2f));
                 Assert.That(statsLabel.color.grayscale, Is.LessThan(0.35f));

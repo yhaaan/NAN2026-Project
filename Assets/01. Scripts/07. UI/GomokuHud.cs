@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,8 +18,8 @@ namespace NAN2026.Gomoku
         [SerializeField] private Button combatSpeedButton;
         [SerializeField] private Text combatSpeedText;
         [SerializeField] private GameObject shopPanel;
-        [SerializeField] private Text goldText;
-        [SerializeField] private Text selectedText;
+        [SerializeField] private TMP_Text goldText;
+        [SerializeField] private TMP_Text selectedText;
         [SerializeField] private Button rerollButton;
         [SerializeField] private ShopSlotView[] shopSlots;
         [SerializeField] private GameObject resultPanel;
@@ -152,7 +153,7 @@ namespace NAN2026.Gomoku
                 shopPanel.SetActive(true);
             }
 
-            goldText.text = $"Gold  {gold}";
+            goldText.text = gold.ToString();
             rerollButton.interactable = interactable && gold >= ShopState.RerollCost;
 
             for (int index = 0; index < shopSlots.Length; index++)

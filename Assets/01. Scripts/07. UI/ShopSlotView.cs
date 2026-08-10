@@ -90,7 +90,7 @@ namespace NAN2026.Gomoku
             healthStatText.text = definition.MaxHealth.ToString();
             powerStatText.text = definition.Power.ToString();
             rangeStatText.text = definition.Range.ToString();
-            intervalStatText.text = $"{definition.ActionInterval:0.0}초";
+            intervalStatText.text = $"{definition.ActionInterval:0.0}s";
             abilityText.color = mutedBlack;
             healthStatText.color = mutedBlack;
             rangeStatText.color = mutedBlack;

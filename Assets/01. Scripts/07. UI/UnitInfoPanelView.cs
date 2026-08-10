@@ -1,4 +1,5 @@
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,16 +10,31 @@ namespace NAN2026.Gomoku
     {
         [Header("Panel")]
         [SerializeField] private CanvasGroup panelGroup;
-        [SerializeField] private Image roleColorImage;
+        [SerializeField] private Image panelImage;
         [SerializeField] private Image roleIconImage;
-        [SerializeField] private Text nameText;
-        [SerializeField] private Text detailsText;
-        [SerializeField] private Text roleNameText;
-        [SerializeField] private Text roleDescriptionText;
+        [SerializeField] private TMP_Text nameText;
+        [SerializeField] private TMP_Text detailsText;
+        [SerializeField] private TMP_Text roleNameText;
+        [SerializeField] private TMP_Text roleDescriptionText;
         [SerializeField] private Slider healthSlider;
-        [SerializeField] private Text healthValueText;
+        [SerializeField] private TMP_Text healthValueText;
         [SerializeField] private Slider cooldownSlider;
-        [SerializeField] private Text cooldownValueText;
+        [SerializeField] private TMP_Text cooldownValueText;
+        [SerializeField] private Sprite commonPanelSprite;
+        [SerializeField] private Sprite rarePanelSprite;
+        [SerializeField] private Sprite epicPanelSprite;
+        [SerializeField] private Sprite legendaryPanelSprite;
+
+        [Header("Role Icons")]
+        [SerializeField] private Sprite guardianRoleSprite;
+        [SerializeField] private Sprite vanguardRoleSprite;
+        [SerializeField] private Sprite supportRoleSprite;
+        [SerializeField] private Sprite marksmanRoleSprite;
+        [SerializeField] private Sprite casterRoleSprite;
+
+        [Header("Stat Colors")]
+        [SerializeField] private Color attackValueColor = Color.red;
+        [SerializeField] private Color rangeValueColor = Color.blue;
 
         [Header("Transition")]
         [SerializeField, Min(0f)] private float showOffset = 40f;
@@ -30,8 +46,6 @@ namespace NAN2026.Gomoku
         private Vector2 shownPosition;
         private Tween positionTween;
         private Tween fadeTween;
-        private Text healthIconText;
-        private Text cooldownIconText;
         private bool targetVisible;
 
         public bool IsVisible => panelGroup != null && panelGroup.alpha > 0.5f;
@@ -46,7 +60,6 @@ namespace NAN2026.Gomoku
         {
             panelRect = transform as RectTransform;
             shownPosition = panelRect != null ? panelRect.anchoredPosition : Vector2.zero;
-            ConfigureSliderLabels();
             SetHiddenImmediately();
         }
 
@@ -65,52 +78,35 @@ namespace NAN2026.Gomoku
 
             Show();
             UnitDefinitionSO definition = unit.Definition;
-            bool isAlly = unit.Side == playerSide;
-            roleColorImage.color = isAlly
-                ? new Color(0.25f, 0.62f, 1f)
-                : new Color(1f, 0.32f, 0.36f);
+            if (panelImage != null)
+            {
+                panelImage.sprite = GetPanelSprite(definition.Grade);
+            }
 
-            string gradeColor = ColorUtility.ToHtmlStringRGB(definition.GradeTextColor);
-            nameText.alignment = TextAnchor.UpperLeft;
-            nameText.color = new Color(0.09f, 0.11f, 0.15f);
-            nameText.text =
-                $"<size=24><b>{definition.DisplayName}</b></size>\n"
-                + $"<size=13><color=#{gradeColor}>■ {definition.GradeDisplayName}</color></size>";
-
-            roleIconImage.sprite = definition.RoleIcon;
+            nameText.text = definition.DisplayName;
+            Sprite roleSprite = GetRoleSprite(definition.Role);
+            roleIconImage.sprite = roleSprite;
             roleIconImage.preserveAspect = true;
-            roleIconImage.gameObject.SetActive(definition.RoleIcon != null);
-            roleNameText.text = $"<b>{definition.RoleDisplayName}</b>";
+            roleIconImage.gameObject.SetActive(roleSprite != null);
+            roleNameText.text = $"-{definition.RoleDisplayName}-";
             roleDescriptionText.text = definition.RoleDescription;
 
             string power = definition.IsSupport
                 ? definition.IsHealer ? "회복력" : "지원력"
                 : "공격력";
-            string abilityName = definition.Ability == UnitAbility.None
-                ? definition.Action?.DisplayName ?? "기본 행동"
-                : definition.AbilityDisplayName;
-            string abilityDescription = definition.Ability == UnitAbility.None
-                ? string.Empty
-                : $"\n<color=#424B5A>{definition.Description}</color>";
-
-            detailsText.alignment = TextAnchor.UpperLeft;
-            detailsText.color = new Color(0.18f, 0.21f, 0.27f);
+            string attackColor = ColorUtility.ToHtmlStringRGBA(attackValueColor);
+            string rangeColor = ColorUtility.ToHtmlStringRGBA(rangeValueColor);
             detailsText.text =
-                $"<size=17><b>{abilityName}</b></size>{abilityDescription}\n\n"
-                + $"<color=#966600>⚔</color> {power}  <b>{definition.Power}</b>       "
-                + $"<color=#2867A8>◎</color> 사거리  <b>{definition.Range}</b>";
+                $" {power}  <color=#{attackColor}><b>{definition.Power}</b></color>         "
+                + $"사거리  <color=#{rangeColor}><b>{definition.Range}</b></color>";
 
             healthSlider.minValue = 0f;
             healthSlider.maxValue = definition.MaxHealth;
             healthSlider.SetValueWithoutNotify(unit.CurrentHealth);
-            healthValueText.alignment = TextAnchor.MiddleLeft;
-            healthValueText.color = new Color(0.12f, 0.14f, 0.18f);
             healthValueText.text =
-                $"현재 HP  <b>{unit.CurrentHealth} / {definition.MaxHealth}</b>";
+                $"<b>{unit.CurrentHealth} / {definition.MaxHealth}</b>";
 
             float interval = GetActionInterval(unit, combat);
-            cooldownValueText.alignment = TextAnchor.MiddleLeft;
-            cooldownValueText.color = new Color(0.12f, 0.14f, 0.18f);
             cooldownSlider.minValue = 0f;
             cooldownSlider.maxValue = interval;
 
@@ -119,79 +115,36 @@ namespace NAN2026.Gomoku
                 float elapsedCooldown = Mathf.Clamp(interval - remainingSeconds, 0f, interval);
                 cooldownSlider.SetValueWithoutNotify(elapsedCooldown);
                 cooldownValueText.text =
-                    $"공격 주기  <b>{elapsedCooldown:0.0}초 / {interval:0.0}초</b>";
+                    $"<b>{elapsedCooldown:0.0}s / {interval:0.0}s</b>";
             }
             else
             {
                 cooldownSlider.SetValueWithoutNotify(interval);
                 cooldownValueText.text =
-                    $"공격 주기  <b>{interval:0.0}초 / {interval:0.0}초</b>";
+                    $"<b>{interval:0.0}s / {interval:0.0}s</b>";
             }
         }
 
-        private void ConfigureSliderLabels()
+        private Sprite GetPanelSprite(UnitGrade grade)
         {
-            healthIconText = ConfigureSliderLabel(
-                healthValueText,
-                "HealthIcon",
-                "♥",
-                new Color(0.72f, 0.2f, 0.28f));
-            cooldownIconText = ConfigureSliderLabel(
-                cooldownValueText,
-                "ActionIntervalIcon",
-                "⏱",
-                new Color(0.15f, 0.44f, 0.36f));
-            cooldownIconText.rectTransform.anchoredPosition = new Vector2(12f, 2f);
+            switch (grade)
+            {
+                case UnitGrade.Rare: return rarePanelSprite;
+                case UnitGrade.Epic: return epicPanelSprite;
+                case UnitGrade.Legendary: return legendaryPanelSprite;
+                default: return commonPanelSprite;
+            }
         }
-
-        private static Text ConfigureSliderLabel(
-            Text valueText,
-            string iconName,
-            string glyph,
-            Color iconColor)
+        private Sprite GetRoleSprite(UnitRole role)
         {
-            RectTransform valueRect = valueText.rectTransform;
-            Vector2 offsetMin = valueRect.offsetMin;
-            Vector2 offsetMax = valueRect.offsetMax;
-            offsetMin.x = 40f;
-            offsetMax.x = -10f;
-            valueRect.offsetMin = offsetMin;
-            valueRect.offsetMax = offsetMax;
-            valueText.alignment = TextAnchor.MiddleLeft;
-
-            Transform existing = valueText.transform.parent.Find(iconName);
-            Text iconText;
-            if (existing != null)
+            switch (role)
             {
-                iconText = existing.GetComponent<Text>();
+                case UnitRole.Guardian: return guardianRoleSprite;
+                case UnitRole.Vanguard: return vanguardRoleSprite;
+                case UnitRole.Marksman: return marksmanRoleSprite;
+                case UnitRole.Caster: return casterRoleSprite;
+                default: return supportRoleSprite;
             }
-            else
-            {
-                var iconObject = new GameObject(
-                    iconName,
-                    typeof(RectTransform),
-                    typeof(CanvasRenderer),
-                    typeof(Text));
-                iconObject.transform.SetParent(valueText.transform.parent, false);
-                iconText = iconObject.GetComponent<Text>();
-            }
-
-            RectTransform iconRect = iconText.rectTransform;
-            iconRect.anchorMin = new Vector2(0f, 0f);
-            iconRect.anchorMax = new Vector2(0f, 1f);
-            iconRect.pivot = new Vector2(0f, 0.5f);
-            iconRect.anchoredPosition = new Vector2(12f, 0f);
-            iconRect.sizeDelta = new Vector2(20f, 0f);
-
-            iconText.font = valueText.font;
-            iconText.fontSize = valueText.fontSize;
-            iconText.fontStyle = FontStyle.Bold;
-            iconText.alignment = TextAnchor.MiddleCenter;
-            iconText.color = iconColor;
-            iconText.raycastTarget = false;
-            iconText.text = glyph;
-            iconText.transform.SetAsLastSibling();
-            return iconText;
         }
 
         private static float GetActionInterval(BoardUnit unit, CombatResolver combat)

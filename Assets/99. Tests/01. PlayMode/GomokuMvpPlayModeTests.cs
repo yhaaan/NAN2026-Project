@@ -14,6 +14,114 @@ namespace NAN2026.Gomoku.Tests
 {
     public sealed class GomokuMvpPlayModeTests
     {
+        private bool hadTutorialSeenPreference;
+        private int tutorialSeenPreferenceValue;
+
+        [SetUp]
+        public void PreserveAndClearTutorialSeenPreference()
+        {
+            hadTutorialSeenPreference = PlayerPrefs.HasKey(FirstMatchCardNewsView.SeenPlayerPrefsKey);
+            tutorialSeenPreferenceValue = PlayerPrefs.GetInt(FirstMatchCardNewsView.SeenPlayerPrefsKey, 0);
+            PlayerPrefs.DeleteKey(FirstMatchCardNewsView.SeenPlayerPrefsKey);
+            PlayerPrefs.Save();
+        }
+
+        [TearDown]
+        public void RestoreTutorialSeenPreference()
+        {
+            if (hadTutorialSeenPreference)
+            {
+                PlayerPrefs.SetInt(
+                    FirstMatchCardNewsView.SeenPlayerPrefsKey,
+                    tutorialSeenPreferenceValue);
+            }
+            else
+            {
+                PlayerPrefs.DeleteKey(FirstMatchCardNewsView.SeenPlayerPrefsKey);
+            }
+
+            PlayerPrefs.Save();
+        }
+
+        [UnityTest]
+        public IEnumerator FirstMatchCardNewsNavigatesAndStartsGame()
+        {
+            AsyncOperation load = SceneManager.LoadSceneAsync("GomokuMvp", LoadSceneMode.Single);
+            while (!load.isDone)
+            {
+                yield return null;
+            }
+
+            yield return null;
+
+            FirstMatchCardNewsView cardNews = Object.FindFirstObjectByType<FirstMatchCardNewsView>();
+            GomokuGameController controller = Object.FindFirstObjectByType<GomokuGameController>();
+            Assert.That(cardNews, Is.Not.Null);
+            Assert.That(controller, Is.Not.Null);
+            Assert.That(FirstMatchCardNewsView.PageMessages, Is.EqualTo(new[]
+            {
+                "유닛으로 싸우며 오목을 완성하는, 전투 오목입니다!",
+                "상점에서 유닛 하나를 골라 빈 교차점에 배치하세요.",
+                "양쪽이 하나씩 배치하면, 최대 10초 동안 자동 전투가 시작됩니다.",
+                "쓰러진 유닛은 보드에서 사라집니다. 배치와 조합으로 내 진형을 지키세요!",
+                "유닛 다섯을 한 줄로 연결하고 끝까지 지켜내면 승리합니다!"
+            }));
+            Assert.That(cardNews.IsVisible, Is.True);
+            Assert.That(FirstMatchCardNewsView.HasBeenSeen, Is.False);
+            Assert.That(cardNews.MessageText, Is.TypeOf<TextMeshProUGUI>());
+            Assert.That(cardNews.MessageText.font.name, Does.StartWith("Maplestory Bold"));
+            Assert.That(cardNews.PageCounterText, Is.TypeOf<TextMeshProUGUI>());
+            Assert.That(cardNews.PageCounterText.font.name, Does.StartWith("Maplestory Light"));
+            Assert.That(cardNews.CurrentPageIndex, Is.EqualTo(0));
+            Assert.That(cardNews.LeftButton.interactable, Is.False);
+            Assert.That(cardNews.RightButton.gameObject.activeSelf, Is.True);
+            Assert.That(cardNews.StartButton.gameObject.activeSelf, Is.False);
+            Assert.That(controller.PlayerSide, Is.EqualTo(StoneColor.None));
+
+            for (int pageIndex = 1; pageIndex < cardNews.PageCount; pageIndex++)
+            {
+                cardNews.RightButton.onClick.Invoke();
+                Assert.That(cardNews.CurrentPageIndex, Is.EqualTo(pageIndex));
+                Assert.That(cardNews.MessageText.text,
+                    Is.EqualTo(FirstMatchCardNewsView.PageMessages[pageIndex]));
+                Assert.That(cardNews.PageImage.texture, Is.Not.Null);
+            }
+
+            Assert.That(cardNews.RightButton.gameObject.activeSelf, Is.False);
+            Assert.That(cardNews.StartButton.gameObject.activeSelf, Is.True);
+            cardNews.LeftButton.onClick.Invoke();
+            Assert.That(cardNews.CurrentPageIndex, Is.EqualTo(cardNews.PageCount - 2));
+            Assert.That(cardNews.RightButton.gameObject.activeSelf, Is.True);
+            Assert.That(cardNews.StartButton.gameObject.activeSelf, Is.False);
+            cardNews.RightButton.onClick.Invoke();
+            Assert.That(cardNews.CurrentPageIndex, Is.EqualTo(cardNews.PageCount - 1));
+            Assert.That(cardNews.StartButton.gameObject.activeSelf, Is.True);
+            cardNews.StartButton.onClick.Invoke();
+            yield return new WaitForSecondsRealtime(cardNews.TransitionHideDuration + 0.1f);
+            Assert.That(cardNews.IsVisible, Is.False);
+            Assert.That(controller.PlayerSide, Is.EqualTo(StoneColor.White));
+            Assert.That(FirstMatchCardNewsView.HasBeenSeen, Is.True);
+            Assert.That(
+                PlayerPrefs.GetInt(FirstMatchCardNewsView.SeenPlayerPrefsKey, 0),
+                Is.EqualTo(1));
+
+            AsyncOperation reload = SceneManager.LoadSceneAsync("GomokuMvp", LoadSceneMode.Single);
+            while (!reload.isDone)
+            {
+                yield return null;
+            }
+
+            yield return null;
+
+            FirstMatchCardNewsView skippedCardNews =
+                Object.FindFirstObjectByType<FirstMatchCardNewsView>();
+            GomokuGameController reloadedController =
+                Object.FindFirstObjectByType<GomokuGameController>();
+            Assert.That(skippedCardNews, Is.Null);
+            Assert.That(reloadedController, Is.Not.Null);
+            Assert.That(reloadedController.PlayerSide, Is.EqualTo(StoneColor.White));
+        }
+
         [UnityTest]
         public IEnumerator ShopHoverShowsUnitAndRoleDescriptions()
         {
@@ -96,6 +204,7 @@ namespace NAN2026.Gomoku.Tests
 
             GomokuGameController controller = Object.FindFirstObjectByType<GomokuGameController>();
             GomokuHud hud = Object.FindFirstObjectByType<GomokuHud>();
+            FirstMatchCardNewsView cardNews = Object.FindFirstObjectByType<FirstMatchCardNewsView>();
             GomokuBoardView boardView = Object.FindFirstObjectByType<GomokuBoardView>();
             PlacementCursorView placementCursor = Object.FindFirstObjectByType<PlacementCursorView>();
             ShopSlotView[] shopSlots = Object.FindObjectsByType<ShopSlotView>(
@@ -113,6 +222,38 @@ namespace NAN2026.Gomoku.Tests
 
             Assert.That(controller, Is.Not.Null);
             Assert.That(controller.enabled, Is.True);
+            Assert.That(cardNews, Is.Not.Null);
+            Assert.That(cardNews.IsVisible, Is.True);
+            Assert.That(cardNews.PageCount, Is.EqualTo(5));
+            Assert.That(cardNews.CurrentPageIndex, Is.EqualTo(0));
+            Assert.That(cardNews.MessageText.text, Is.EqualTo(FirstMatchCardNewsView.PageMessages[0]));
+            Assert.That(cardNews.LeftButton.interactable, Is.False);
+            Assert.That(cardNews.RightButton.gameObject.activeSelf, Is.True);
+            Assert.That(cardNews.StartButton.gameObject.activeSelf, Is.False);
+            Assert.That(cardNews.PageImage.texture, Is.Not.Null);
+
+            for (int pageIndex = 1; pageIndex < cardNews.PageCount; pageIndex++)
+            {
+                cardNews.RightButton.onClick.Invoke();
+                Assert.That(cardNews.CurrentPageIndex, Is.EqualTo(pageIndex));
+                Assert.That(cardNews.MessageText.text,
+                    Is.EqualTo(FirstMatchCardNewsView.PageMessages[pageIndex]));
+            }
+
+            Assert.That(cardNews.LeftButton.interactable, Is.True);
+            Assert.That(cardNews.RightButton.gameObject.activeSelf, Is.False);
+            Assert.That(cardNews.StartButton.gameObject.activeSelf, Is.True);
+
+            cardNews.LeftButton.onClick.Invoke();
+            Assert.That(cardNews.CurrentPageIndex, Is.EqualTo(cardNews.PageCount - 2));
+            Assert.That(cardNews.RightButton.gameObject.activeSelf, Is.True);
+            Assert.That(cardNews.StartButton.gameObject.activeSelf, Is.False);
+            cardNews.RightButton.onClick.Invoke();
+            Assert.That(cardNews.CurrentPageIndex, Is.EqualTo(cardNews.PageCount - 1));
+            Assert.That(cardNews.StartButton.gameObject.activeSelf, Is.True);
+            cardNews.StartButton.onClick.Invoke();
+            yield return new WaitForSecondsRealtime(cardNews.TransitionHideDuration + 0.05f);
+            Assert.That(cardNews.IsVisible, Is.False);
             Assert.That(controller.PlayerSide, Is.EqualTo(StoneColor.White));
             Assert.That(controller.PrepareMusic.name, Is.EqualTo("prepare"));
             Assert.That(controller.BattleMusic.name, Is.EqualTo("battle"));
@@ -167,7 +308,7 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(uiButtonFeedback.ClickSfx.name, Is.EqualTo("drop_002"));
             Assert.That(uiButtonFeedback.PitchRange, Is.EqualTo(new Vector2(0.92f, 1.08f)));
             uiButtonFeedback.BindButtons();
-            Assert.That(uiButtonFeedback.BoundButtonCount, Is.EqualTo(7));
+            Assert.That(uiButtonFeedback.BoundButtonCount, Is.EqualTo(10));
             Assert.That(UiButtonSfxFeedback.CombatSpeedPitch(1), Is.EqualTo(0.84f).Within(0.001f));
             Assert.That(UiButtonSfxFeedback.CombatSpeedPitch(2), Is.EqualTo(0.92f).Within(0.001f));
             Assert.That(UiButtonSfxFeedback.CombatSpeedPitch(3), Is.EqualTo(1f).Within(0.001f));
@@ -706,6 +847,84 @@ namespace NAN2026.Gomoku.Tests
         }
 
         [UnityTest]
+        public IEnumerator TitleGuideButtonShowsCardNewsAndStartsGame()
+        {
+            AsyncOperation load = SceneManager.LoadSceneAsync("Title", LoadSceneMode.Single);
+            while (!load.isDone)
+            {
+                yield return null;
+            }
+
+            yield return null;
+
+            AnimatedTitleScreenController titleController =
+                Object.FindFirstObjectByType<AnimatedTitleScreenController>();
+            Assert.That(titleController, Is.Not.Null);
+            Assert.That(titleController.StartButton, Is.Not.Null);
+            Assert.That(titleController.GuideButton, Is.Not.Null);
+            Assert.That(titleController.ExitButton, Is.Not.Null);
+            Assert.That(titleController.CardNewsBoldFont, Is.Not.Null);
+            Assert.That(titleController.CardNewsBoldFont.name, Does.StartWith("Maplestory Bold"));
+            Assert.That(titleController.CardNewsLightFont, Is.Not.Null);
+            Assert.That(titleController.CardNewsLightFont.name, Does.StartWith("Maplestory Light"));
+            Assert.That(FirstMatchCardNewsView.HasBeenSeen, Is.False);
+
+            titleController.GuideButton.onClick.Invoke();
+            titleController.GuideButton.onClick.Invoke();
+            yield return null;
+
+            FirstMatchCardNewsView[] cardNewsViews =
+                Object.FindObjectsByType<FirstMatchCardNewsView>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None);
+            Assert.That(cardNewsViews, Has.Length.EqualTo(1));
+            FirstMatchCardNewsView cardNews = cardNewsViews[0];
+            Assert.That(cardNews.IsVisible, Is.True);
+            Assert.That(cardNews.CurrentPageIndex, Is.EqualTo(0));
+            Assert.That(cardNews.MessageText, Is.TypeOf<TextMeshProUGUI>());
+            Assert.That(cardNews.MessageText.font.name, Does.StartWith("Maplestory Bold"));
+            string cardNewsText = string.Concat(FirstMatchCardNewsView.PageMessages) + "게임 시작<>";
+            Assert.That(
+                cardNews.MessageText.font.HasCharacters(
+                    cardNewsText,
+                    out List<char> boldMissingCharacters),
+                Is.True,
+                $"Maplestory Bold is missing: {string.Join(", ", boldMissingCharacters)}");
+
+            Assert.That(cardNews.PageCounterText, Is.TypeOf<TextMeshProUGUI>());
+            Assert.That(cardNews.PageCounterText.font.name, Does.StartWith("Maplestory Light"));
+            Assert.That(
+                cardNews.PageCounterText.font.HasCharacters(
+                    "1 / 5",
+                    out List<char> lightMissingCharacters),
+                Is.True,
+                $"Maplestory Light is missing: {string.Join(", ", lightMissingCharacters)}");
+
+            Assert.That(
+                cardNews.StartButton.GetComponentInChildren<TMP_Text>(true).font.name,
+                Does.StartWith("Maplestory Bold"));
+
+            for (int pageIndex = 1; pageIndex < cardNews.PageCount; pageIndex++)
+            {
+                cardNews.RightButton.onClick.Invoke();
+            }
+
+            cardNews.StartButton.onClick.Invoke();
+            while (SceneManager.GetActiveScene().name != SceneTransitionController.MainGameSceneName)
+            {
+                yield return null;
+            }
+
+            yield return null;
+
+            Assert.That(FirstMatchCardNewsView.HasBeenSeen, Is.True);
+            Assert.That(Object.FindFirstObjectByType<FirstMatchCardNewsView>(), Is.Null);
+            GomokuGameController gameController = Object.FindFirstObjectByType<GomokuGameController>();
+            Assert.That(gameController, Is.Not.Null);
+            Assert.That(gameController.PlayerSide, Is.EqualTo(StoneColor.White));
+        }
+
+        [UnityTest]
         public IEnumerator TitleSceneButtonUsesSharedClickFeedback()
         {
             AsyncOperation load = SceneManager.LoadSceneAsync("Title", LoadSceneMode.Single);
@@ -732,7 +951,7 @@ namespace NAN2026.Gomoku.Tests
             Assert.That(SoundManager.Instance.IsMusicPlaying, Is.True);
             Assert.That(SoundManager.Instance.IsMusicLooping, Is.True);
             feedback.BindButtons();
-            Assert.That(feedback.BoundButtonCount, Is.EqualTo(2));
+            Assert.That(feedback.BoundButtonCount, Is.EqualTo(3));
             Assert.That(feedback.ClickSfx.name, Is.EqualTo("drop_002"));
             Assert.That(feedback.PitchRange, Is.EqualTo(new Vector2(0.92f, 1.08f)));
 

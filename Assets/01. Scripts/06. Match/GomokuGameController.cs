@@ -48,6 +48,7 @@ namespace NAN2026.Gomoku
         private Coroutine victoryRoutine;
         private Coroutine shopHideDelayRoutine;
         private Coroutine combatEndDelayRoutine;
+        private FirstMatchCardNewsView cardNews;
 
         public StoneColor PlayerSide => playerSide;
         public float ShopHideDelayAfterPlacement => shopHideDelayAfterPlacement;
@@ -92,7 +93,20 @@ namespace NAN2026.Gomoku
                 HandleCombatSpeedChanged,
                 combatSpeed);
             hud.SetCombatResolver(combat);
-            StartMatch();
+            if (FirstMatchCardNewsView.HasBeenSeen)
+            {
+                StartMatch();
+                return;
+            }
+
+            cardNews = FirstMatchCardNewsView.Create(
+                hud.transform.parent,
+                hud,
+                StartMatch);
+            if (cardNews == null)
+            {
+                StartMatch();
+            }
         }
 
         private void Update()

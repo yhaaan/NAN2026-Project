@@ -1,7 +1,7 @@
 # NAN2026-Project
 
 <div align="center">
-  <h1><a href="https://yhaaan.github.io/NAN2026-Project/">🎮 지금 바로 플레이하기</a></h1>
+  <h1><a href="https://yhaaan.github.io/NAN2026-Project/">🎮 지금 바로 플레이하기(클릭)</a></h1>
   <p><strong>설치 없이 웹 브라우저에서 바로 플레이할 수 있습니다.</strong></p>
 </div>
 

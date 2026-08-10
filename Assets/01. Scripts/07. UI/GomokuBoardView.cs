@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using DamageNumbersPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace NAN2026.Gomoku
@@ -10,6 +11,9 @@ namespace NAN2026.Gomoku
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class GomokuBoardView : MaskableGraphic, IPointerClickHandler
     {
+        private const int DebugPopupMinAmount = 10;
+        private const int DebugPopupMaxAmountExclusive = 101;
+
         [SerializeField] private DamageNumber attackDamagePopup;
         [SerializeField] private DamageNumber hitDamagePopup;
         [SerializeField] private DamageNumber healPopup;
@@ -25,6 +29,7 @@ namespace NAN2026.Gomoku
         private Canvas rootCanvas;
         private UnitDefinitionSO placementPreviewDefinition;
         private BoardPointerState pointerState = BoardPointerState.None;
+        private bool debugPopupModeEnabled;
         private bool ownsWorldView;
 
         public BoardPointerState PointerState => pointerState;
@@ -196,6 +201,45 @@ namespace NAN2026.Gomoku
             ClearPointerState();
         }
 
+        private void Update()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null)
+            {
+                return;
+            }
+
+            if (keyboard.f1Key.wasPressedThisFrame)
+            {
+                debugPopupModeEnabled = !debugPopupModeEnabled;
+                Debug.Log($"Damage popup debug mode: {(debugPopupModeEnabled ? "ON" : "OFF")}", this);
+            }
+
+            if (!debugPopupModeEnabled || !UiPointerInputSource.TryGetScreenPosition(out Vector2 screenPosition))
+            {
+                return;
+            }
+
+            DamageNumber popup = null;
+            if (keyboard.qKey.wasPressedThisFrame)
+            {
+                popup = attackDamagePopup;
+            }
+            else if (keyboard.wKey.wasPressedThisFrame)
+            {
+                popup = hitDamagePopup;
+            }
+            else if (keyboard.eKey.wasPressedThisFrame)
+            {
+                popup = healPopup;
+            }
+
+            if (popup != null)
+            {
+                SpawnDebugPopup(popup, screenPosition);
+            }
+        }
+
         protected override void OnPopulateMesh(VertexHelper vertexHelper)
         {
             vertexHelper.Clear();
@@ -293,6 +337,24 @@ namespace NAN2026.Gomoku
             {
                 healPopup.SpawnGUI(rectTransform, position + Vector2.up * spacing * 0.35f, healing);
             }
+        }
+
+        private void SpawnDebugPopup(DamageNumber popup, Vector2 screenPosition)
+        {
+            Camera eventCamera = rootCanvas != null && rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? rootCanvas.worldCamera
+                : null;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    rectTransform,
+                    screenPosition,
+                    eventCamera,
+                    out Vector2 localPosition))
+            {
+                return;
+            }
+
+            int amount = UnityEngine.Random.Range(DebugPopupMinAmount, DebugPopupMaxAmountExclusive);
+            popup.SpawnGUI(rectTransform, localPosition, amount);
         }
 
         private void UpdatePointerState(Vector2 screenPosition)

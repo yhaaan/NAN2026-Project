@@ -868,6 +868,91 @@ namespace NAN2026.Gomoku.Tests
         }
 
         [UnityTest]
+        public IEnumerator SniperProjectileTravelsStraightThroughFarthestTarget()
+        {
+            float originalTimeScale = Time.timeScale;
+            Time.timeScale = 1f;
+            UnitCatalogSO catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<UnitCatalogSO>(
+                "Assets/06. Data/00. Units/UnitCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+            UnitDefinitionSO actorDefinition = catalog.Units.Single(
+                definition => definition.UnitId == "epic-sniper");
+            UnitDefinitionSO targetDefinition = catalog.Units.Single(
+                definition => definition.UnitId == "common-vanguard");
+
+            var root = new GameObject("PiercingProjectileTest");
+            BoardWorldView worldView = root.AddComponent<BoardWorldView>();
+            UnitView actorView = Object.Instantiate(
+                actorDefinition.Presentation.WorldPrefab,
+                root.transform);
+            actorView.transform.localPosition = Vector3.zero;
+            var actorUnit = new BoardUnit(
+                actorDefinition,
+                StoneColor.White,
+                0,
+                0,
+                3000);
+            actorView.Bind(actorUnit, actorDefinition.Presentation);
+
+            var targetUnits = new BoardUnit[2];
+            var targetViews = new UnitView[2];
+            for (int index = 0; index < targetUnits.Length; index++)
+            {
+                targetViews[index] = Object.Instantiate(
+                    targetDefinition.Presentation.WorldPrefab,
+                    root.transform);
+                targetViews[index].transform.localPosition = Vector3.right * (index + 1);
+                targetUnits[index] = new BoardUnit(
+                    targetDefinition,
+                    StoneColor.Black,
+                    index + 1,
+                    0,
+                    3001 + index);
+                targetViews[index].Bind(targetUnits[index], targetDefinition.Presentation);
+            }
+
+            FieldInfo unitViewsField = typeof(BoardWorldView).GetField(
+                "unitViews",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            var unitViews = unitViewsField.GetValue(worldView)
+                as Dictionary<BoardUnit, UnitView>;
+            unitViews.Add(actorUnit, actorView);
+            for (int index = 0; index < targetUnits.Length; index++)
+            {
+                unitViews.Add(targetUnits[index], targetViews[index]);
+            }
+
+            bool resultsPresented = false;
+            var actionEvent = new CombatActionEvent(
+                actorUnit,
+                UnitActionKind.Damage,
+                targetUnits.Select(target => new CombatEffectResult(
+                    target,
+                    CombatEffectKind.Damage,
+                    1,
+                    false)).ToArray());
+
+            worldView.PlayCombatAction(actionEvent, () => resultsPresented = true);
+            yield return new WaitForSeconds(0.3f);
+
+            ProjectileVfxView projectile = root.GetComponentInChildren<ProjectileVfxView>();
+            Assert.That(projectile, Is.Not.Null);
+            Assert.That(projectile.UsesLinearTrajectory, Is.True);
+            Assert.That(projectile.GetComponent<TrailRenderer>(), Is.Not.Null);
+            Assert.That(Mathf.Abs(projectile.DestinationLocalPosition.y), Is.LessThan(0.01f));
+            Assert.That(projectile.DestinationLocalPosition.x, Is.GreaterThan(2f));
+            Assert.That(resultsPresented, Is.False);
+
+            yield return new WaitForSeconds(0.3f);
+            Assert.That(resultsPresented, Is.True);
+
+            Object.Destroy(root);
+            SoundManager.Instance.StopAllSfx();
+            Time.timeScale = originalTimeScale;
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator UnitViewDotweenAnimationsCompleteAndRestoreState()
         {
             UnitView actor = UnitView.CreateRuntimePlaceholder(null);

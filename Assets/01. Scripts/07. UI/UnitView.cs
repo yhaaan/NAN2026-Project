@@ -40,6 +40,7 @@ namespace NAN2026.Gomoku
         private bool usesGeneratedStone;
         private StoneColor boundSide;
         private UnitRole role;
+        private UnitAbility ability;
         private string boundUnitId = string.Empty;
         private static Material runtimeParticleMaterial;
 
@@ -84,6 +85,7 @@ namespace NAN2026.Gomoku
             accentColor = presentation != null ? presentation.AccentColor : targetUnit.Definition.RoleColor;
             boundSide = targetUnit.Side;
             role = targetUnit.Definition.Role;
+            ability = targetUnit.Definition.Ability;
             boundUnitId = targetUnit.Definition.UnitId;
             restLocalPosition = transform.localPosition;
             transform.localScale = Vector3.one;
@@ -330,6 +332,16 @@ namespace NAN2026.Gomoku
             }
 
             ProjectileVfxView projectile = Instantiate(projectilePrefab, transform.parent);
+            if (ability == UnitAbility.PiercingShot)
+            {
+                Vector3 direction = (target.transform.localPosition - transform.localPosition).normalized;
+                projectile.PlayLinear(
+                    transform.localPosition,
+                    target.transform.localPosition + direction * 0.45f,
+                    arrived);
+                return;
+            }
+
             projectile.Play(
                 transform.localPosition,
                 target.transform.localPosition,

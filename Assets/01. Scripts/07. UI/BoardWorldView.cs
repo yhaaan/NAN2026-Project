@@ -187,6 +187,27 @@ namespace NAN2026.Gomoku
                 unitViews.TryGetValue(actionEvent.Results[0].Target, out firstTarget);
             }
 
+            if (actorView != null
+                && actionEvent.Actor.Definition.Ability == UnitAbility.PiercingShot)
+            {
+                float farthestDistance = -1f;
+                foreach (CombatEffectResult result in actionEvent.Results)
+                {
+                    if (!unitViews.TryGetValue(result.Target, out UnitView targetView))
+                    {
+                        continue;
+                    }
+
+                    float distance = (targetView.transform.localPosition
+                        - actorView.transform.localPosition).sqrMagnitude;
+                    if (distance > farthestDistance)
+                    {
+                        farthestDistance = distance;
+                        firstTarget = targetView;
+                    }
+                }
+            }
+
             void PresentResults()
             {
                 ApplyCombatResults(actionEvent);

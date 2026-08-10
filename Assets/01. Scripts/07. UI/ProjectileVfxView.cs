@@ -17,8 +17,11 @@ namespace NAN2026.Gomoku
         [SerializeField] private float angleOffset;
 
         private Tween travelTween;
+        private static Material piercingTrailMaterial;
 
         public SpriteRenderer SpriteRenderer => spriteRenderer;
+        public bool UsesLinearTrajectory { get; private set; }
+        public Vector3 DestinationLocalPosition { get; private set; }
 
         private void Awake()
         {
@@ -44,6 +47,8 @@ namespace NAN2026.Gomoku
 
         public void Play(Vector3 startLocalPosition, Vector3 endLocalPosition, Action arrived)
         {
+            UsesLinearTrajectory = false;
+            DestinationLocalPosition = endLocalPosition;
             transform.localPosition = startLocalPosition;
             Vector3 controlPoint = Vector3.Lerp(
                     startLocalPosition,
@@ -77,6 +82,81 @@ namespace NAN2026.Gomoku
                     arrived?.Invoke();
                     Destroy(gameObject);
                 });
+        }
+
+        public void PlayLinear(
+            Vector3 startLocalPosition,
+            Vector3 endLocalPosition,
+            Action arrived)
+        {
+            UsesLinearTrajectory = true;
+            DestinationLocalPosition = endLocalPosition;
+            transform.localPosition = startLocalPosition;
+            Vector3 direction = endLocalPosition - startLocalPosition;
+            if (direction.sqrMagnitude > Mathf.Epsilon)
+            {
+                transform.localRotation = Quaternion.Euler(
+                    0f,
+                    0f,
+                    Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg + angleOffset);
+            }
+
+            TrailRenderer trail = EnsurePiercingTrail();
+            trail.Clear();
+            trail.emitting = true;
+            spriteRenderer.color = new Color(0.72f, 0.95f, 1f, 1f);
+
+            travelTween = transform.DOLocalMove(endLocalPosition, travelDuration)
+                .SetEase(Ease.Linear)
+                .SetTarget(this)
+                .OnComplete(() =>
+                {
+                    transform.localPosition = endLocalPosition;
+                    travelTween = null;
+                    trail.emitting = false;
+                    arrived?.Invoke();
+                    Destroy(gameObject, trail.time);
+                });
+        }
+
+        private TrailRenderer EnsurePiercingTrail()
+        {
+            TrailRenderer trail = GetComponent<TrailRenderer>();
+            if (trail == null)
+            {
+                trail = gameObject.AddComponent<TrailRenderer>();
+            }
+
+            trail.time = 0.16f;
+            trail.minVertexDistance = 0.02f;
+            trail.startWidth = 0.1f;
+            trail.endWidth = 0f;
+            trail.startColor = new Color(0.82f, 0.98f, 1f, 0.95f);
+            trail.endColor = new Color(0.22f, 0.68f, 1f, 0f);
+            trail.alignment = LineAlignment.View;
+            trail.textureMode = LineTextureMode.Stretch;
+            trail.sortingLayerName = "WorldVfx";
+            trail.sortingOrder = 0;
+
+            if (piercingTrailMaterial == null)
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                    ?? Shader.Find("Sprites/Default");
+                if (shader != null)
+                {
+                    piercingTrailMaterial = new Material(shader)
+                    {
+                        name = "Runtime Piercing Trail"
+                    };
+                }
+            }
+
+            if (piercingTrailMaterial != null)
+            {
+                trail.sharedMaterial = piercingTrailMaterial;
+            }
+
+            return trail;
         }
 
         private void ApplyTrajectory(

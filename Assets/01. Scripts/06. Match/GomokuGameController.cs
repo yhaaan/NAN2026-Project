@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace NAN2026.Gomoku
@@ -14,6 +15,7 @@ namespace NAN2026.Gomoku
         private const float MatchTitleDelay = 0.38f;
         private const int MinCombatSpeed = 1;
         private const int MaxCombatSpeed = 5;
+        private const float PvpCombatStep = 1f / 60f;
 
         [SerializeField] private UnitCatalogSO unitCatalog;
         [SerializeField] private GomokuHud hud;
@@ -49,6 +51,14 @@ namespace NAN2026.Gomoku
         private Coroutine shopHideDelayRoutine;
         private Coroutine combatEndDelayRoutine;
         private FirstMatchCardNewsView cardNews;
+        private readonly Queue<PvpMatchCommand> queuedPvpCommands = new Queue<PvpMatchCommand>();
+        private PvpMatchCoordinator pvpCoordinator;
+        private bool isPvp;
+        private bool pvpCommandPending;
+        private bool resultReady;
+        private float pvpCombatAccumulator;
+
+        private string OpponentLabel => isPvp ? "Opponent" : "COM";
 
         public StoneColor PlayerSide => playerSide;
         public float ShopHideDelayAfterPlacement => shopHideDelayAfterPlacement;
@@ -75,13 +85,6 @@ namespace NAN2026.Gomoku
                 return;
             }
 
-            var random = new System.Random();
-            playerShop = new ShopState(
-                unitCatalog.Units,
-                random,
-                usePlayerAdvantagePenalty: true);
-            comShop = new ShopState(unitCatalog.Units, random);
-            com = new GomokuCom(random, combatDuration);
             combat = new CombatResolver(combatDuration);
             combat.ActionResolved += HandleCombatAction;
             Time.timeScale = 1f;
@@ -93,6 +96,26 @@ namespace NAN2026.Gomoku
                 HandleCombatSpeedChanged,
                 combatSpeed);
             hud.SetCombatResolver(combat);
+
+            pvpCoordinator = PvpMatchCoordinator.Instance;
+            isPvp = pvpCoordinator != null && pvpCoordinator.IsMatchPending;
+            hud.SetCombatSpeedControlsVisible(!isPvp);
+            if (isPvp)
+            {
+                playerSide = pvpCoordinator.LocalSide;
+                pvpCoordinator.CommandRequested += HandlePvpCommandRequest;
+                pvpCoordinator.CommandReceived += HandlePvpCommandReceived;
+                pvpCoordinator.BeginSynchronization(InitializePvpMatch);
+                return;
+            }
+
+            var random = new System.Random();
+            playerShop = new ShopState(
+                unitCatalog.Units,
+                random,
+                usePlayerAdvantagePenalty: true);
+            comShop = new ShopState(unitCatalog.Units, random);
+            com = new GomokuCom(random, combatDuration);
             if (FirstMatchCardNewsView.HasBeenSeen)
             {
                 StartMatch();
@@ -111,7 +134,7 @@ namespace NAN2026.Gomoku
 
         private void Update()
         {
-            if (comTurnPending)
+            if (!isPvp && comTurnPending)
             {
                 comDelayRemaining -= Time.deltaTime;
                 if (comDelayRemaining <= 0f)
@@ -125,7 +148,7 @@ namespace NAN2026.Gomoku
                 && !waitingForContinue
                 && !combatTransitionPending)
             {
-                combat.Tick(Time.deltaTime);
+                TickCombat();
                 hud.SetCombatElapsed(combat.Elapsed);
 
                 if (combat.IsFinished)
@@ -151,6 +174,55 @@ namespace NAN2026.Gomoku
             {
                 combat.ActionResolved -= HandleCombatAction;
             }
+
+            if (pvpCoordinator != null)
+            {
+                pvpCoordinator.CommandRequested -= HandlePvpCommandRequest;
+                pvpCoordinator.CommandReceived -= HandlePvpCommandReceived;
+                pvpCoordinator.EndSynchronization();
+            }
+        }
+
+        private void InitializePvpMatch(int seed)
+        {
+            if (playerShop != null)
+            {
+                return;
+            }
+
+            playerShop = new ShopState(
+                unitCatalog.Units,
+                new System.Random(CreateSideSeed(seed, playerSide)));
+            StoneColor enemySide = GomokuGame.OpponentOf(playerSide);
+            comShop = new ShopState(
+                unitCatalog.Units,
+                new System.Random(CreateSideSeed(seed, enemySide)));
+            StartMatch();
+        }
+
+        private static int CreateSideSeed(int seed, StoneColor side)
+        {
+            return seed ^ (side == StoneColor.Black ? 0x13579BDF : 0x02468ACE);
+        }
+
+        private void TickCombat()
+        {
+            if (!isPvp)
+            {
+                combat.Tick(Time.deltaTime);
+                return;
+            }
+
+            pvpCombatAccumulator += Time.unscaledDeltaTime;
+            int steps = 0;
+            while (pvpCombatAccumulator >= PvpCombatStep
+                && !combat.IsFinished
+                && steps < 120)
+            {
+                combat.Tick(PvpCombatStep);
+                pvpCombatAccumulator -= PvpCombatStep;
+                steps++;
+            }
         }
 
         private void StartMatch()
@@ -160,6 +232,7 @@ namespace NAN2026.Gomoku
             matchFinished = false;
             lastGameWasDraw = false;
             waitingForContinue = false;
+            resultReady = false;
             if (victoryRoutine != null)
             {
                 StopCoroutine(victoryRoutine);
@@ -173,12 +246,17 @@ namespace NAN2026.Gomoku
         private void StartGame()
         {
             Time.timeScale = 1f;
-            playerSide = StoneColor.White;
+            if (!isPvp)
+            {
+                playerSide = StoneColor.White;
+            }
+
             game.StartNewGame(StoneColor.Black);
             playerShop.ResetForGame();
             comShop.ResetForGame();
             selectedOffer = -1;
             waitingForContinue = false;
+            resultReady = false;
             CancelShopHideDelay();
             CancelCombatEndDelay();
             combatTransitionPending = false;
@@ -211,17 +289,26 @@ namespace NAN2026.Gomoku
                 comShop.BeginPlacementTurn();
                 selectedOffer = -1;
                 hud.ShowShop(playerShop.Offers, playerShop.Gold, selectedOffer, false);
-                comDelayRemaining = comPlacementDelay;
-                comTurnPending = true;
+                if (isPvp)
+                {
+                    comTurnPending = false;
+                }
+                else
+                {
+                    comDelayRemaining = comPlacementDelay;
+                    comTurnPending = true;
+                }
             }
 
             RefreshTurnStatus();
+            DrainPvpCommandQueue();
         }
 
         private void HandleShopSelection(int offerIndex)
         {
             if (game.Phase != GamePhase.Placement
                 || game.CurrentTurn != playerSide
+                || pvpCommandPending
                 || offerIndex < 0
                 || offerIndex >= playerShop.Offers.Count)
             {
@@ -234,8 +321,24 @@ namespace NAN2026.Gomoku
 
         private void HandleReroll()
         {
-            if (game.Phase != GamePhase.Placement || game.CurrentTurn != playerSide)
+            if (game.Phase != GamePhase.Placement
+                || game.CurrentTurn != playerSide
+                || pvpCommandPending)
             {
+                return;
+            }
+
+            if (isPvp)
+            {
+                if (playerShop.Gold < ShopState.RerollCost)
+                {
+                    return;
+                }
+
+                pvpCommandPending = true;
+                pvpCoordinator.RequestCommand(new PvpMatchCommand(
+                    PvpMatchCommandType.Reroll,
+                    playerSide));
                 return;
             }
 
@@ -250,8 +353,27 @@ namespace NAN2026.Gomoku
         {
             if (game.Phase != GamePhase.Placement
                 || game.CurrentTurn != playerSide
+                || pvpCommandPending
                 || selectedOffer < 0)
             {
+                return;
+            }
+
+            if (isPvp)
+            {
+                UnitDefinitionSO definition = playerShop.Offers[selectedOffer];
+                if (!game.CanPlace(x, y, definition))
+                {
+                    return;
+                }
+
+                pvpCommandPending = true;
+                pvpCoordinator.RequestCommand(new PvpMatchCommand(
+                    PvpMatchCommandType.Place,
+                    playerSide,
+                    x,
+                    y,
+                    selectedOffer));
                 return;
             }
 
@@ -263,7 +385,8 @@ namespace NAN2026.Gomoku
 
         private void PlaceComUnit()
         {
-            if (game.Phase != GamePhase.Placement || game.CurrentTurn == playerSide)
+            if (isPvp
+                || game.Phase != GamePhase.Placement || game.CurrentTurn == playerSide)
             {
                 return;
             }
@@ -281,6 +404,144 @@ namespace NAN2026.Gomoku
             {
                 AfterPlacement();
             }
+        }
+
+        private void HandlePvpCommandRequest(ulong senderClientId, PvpMatchCommand command)
+        {
+            if (!isPvp || !pvpCoordinator.IsHost)
+            {
+                return;
+            }
+
+            StoneColor senderSide = PvpMatchCoordinator.GetSideForClient(senderClientId);
+            if (!ValidatePvpCommand(senderSide, command))
+            {
+                Debug.LogWarning($"Rejected invalid PvP command {command.Type} from client {senderClientId}.", this);
+                return;
+            }
+
+            pvpCoordinator.ApproveCommand(command);
+        }
+
+        private bool ValidatePvpCommand(StoneColor senderSide, PvpMatchCommand command)
+        {
+            if (command.Type == PvpMatchCommandType.Continue)
+            {
+                return senderSide == StoneColor.Black && waitingForContinue;
+            }
+
+            if (command.Side != senderSide
+                || game.Phase != GamePhase.Placement
+                || game.CurrentTurn != senderSide)
+            {
+                return false;
+            }
+
+            ShopState shop = GetShopForSide(senderSide);
+            if (command.Type == PvpMatchCommandType.Reroll)
+            {
+                return shop.Gold >= ShopState.RerollCost;
+            }
+
+            if (command.Type != PvpMatchCommandType.Place
+                || command.OfferIndex < 0
+                || command.OfferIndex >= shop.Offers.Count)
+            {
+                return false;
+            }
+
+            return game.CanPlace(command.X, command.Y, shop.Offers[command.OfferIndex]);
+        }
+
+        private void HandlePvpCommandReceived(PvpMatchCommand command)
+        {
+            if (!isPvp)
+            {
+                return;
+            }
+
+            queuedPvpCommands.Enqueue(command);
+            DrainPvpCommandQueue();
+        }
+
+        private void DrainPvpCommandQueue()
+        {
+            if (!isPvp)
+            {
+                return;
+            }
+
+            while (queuedPvpCommands.Count > 0)
+            {
+                PvpMatchCommand command = queuedPvpCommands.Peek();
+                if (!CanApplyPvpCommand(command))
+                {
+                    return;
+                }
+
+                queuedPvpCommands.Dequeue();
+                ApplyPvpCommand(command);
+            }
+        }
+
+        private bool CanApplyPvpCommand(PvpMatchCommand command)
+        {
+            if (command.Type == PvpMatchCommandType.Continue)
+            {
+                return resultReady;
+            }
+
+            return game.Phase == GamePhase.Placement
+                && game.CurrentTurn == command.Side;
+        }
+
+        private void ApplyPvpCommand(PvpMatchCommand command)
+        {
+            if (command.Type == PvpMatchCommandType.Continue)
+            {
+                pvpCommandPending = false;
+                ContinueAfterResult();
+                return;
+            }
+
+            ShopState shop = GetShopForSide(command.Side);
+            if (command.Side == playerSide)
+            {
+                pvpCommandPending = false;
+            }
+
+            if (command.Type == PvpMatchCommandType.Reroll)
+            {
+                if (!shop.TryReroll())
+                {
+                    Debug.LogError("The synchronized PvP reroll could not be applied.", this);
+                    return;
+                }
+
+                if (command.Side == playerSide)
+                {
+                    selectedOffer = -1;
+                    hud.ShowShop(playerShop.Offers, playerShop.Gold, selectedOffer, true);
+                }
+
+                return;
+            }
+
+            if (command.Type != PvpMatchCommandType.Place
+                || command.OfferIndex < 0
+                || command.OfferIndex >= shop.Offers.Count
+                || !game.TryPlace(command.X, command.Y, shop.Offers[command.OfferIndex]))
+            {
+                Debug.LogError("The synchronized PvP placement could not be applied.", this);
+                return;
+            }
+
+            AfterPlacement();
+        }
+
+        private ShopState GetShopForSide(StoneColor side)
+        {
+            return side == playerSide ? playerShop : comShop;
         }
 
         private void AfterPlacement()
@@ -301,7 +562,7 @@ namespace NAN2026.Gomoku
                 combatTransitionPending = true;
                 HideShopAfterPlacement(BeginCombat);
                 hud.ShowCombatTimer(combat.Duration);
-                Time.timeScale = combatSpeed;
+                Time.timeScale = isPvp ? 1f : combatSpeed;
                 RefreshTurnStatus();
             }
             else
@@ -322,6 +583,7 @@ namespace NAN2026.Gomoku
                 return;
             }
 
+            pvpCombatAccumulator = 0f;
             combat.Begin(game);
             SoundManager.Instance.PlayMusic(battleMusic, musicFadeDuration);
             combatTransitionPending = false;
@@ -441,7 +703,10 @@ namespace NAN2026.Gomoku
             if (lastGameWasDraw)
             {
                 RefreshTurnStatus();
-                hud.ShowResult(title, $"Player {playerWins} : {comWins} COM", buttonLabel);
+                hud.ShowResult(title, $"Player {playerWins} : {comWins} {OpponentLabel}", buttonLabel);
+                hud.SetContinueButtonInteractable(!isPvp || pvpCoordinator.IsHost);
+                resultReady = true;
+                DrainPvpCommandQueue();
                 return;
             }
 
@@ -485,8 +750,9 @@ namespace NAN2026.Gomoku
             string gameTitle = playerWon ? "GAME WIN" : "GAME LOSE";
             hud.ShowResult(
                 gameTitle,
-                $"Player {playerWins} : {comWins} COM",
+                $"Player {playerWins} : {comWins} {OpponentLabel}",
                 buttonLabel);
+            hud.SetContinueButtonInteractable(!isPvp || pvpCoordinator.IsHost);
             if (!matchFinished)
             {
                 PlayResultSfx(playerWon);
@@ -501,6 +767,8 @@ namespace NAN2026.Gomoku
             }
 
             victoryRoutine = null;
+            resultReady = true;
+            DrainPvpCommandQueue();
         }
 
         private void PlayResultSfx(bool playerWon)
@@ -516,13 +784,28 @@ namespace NAN2026.Gomoku
                 return;
             }
 
+            if (isPvp)
+            {
+                if (!pvpCoordinator.IsHost || pvpCommandPending)
+                {
+                    return;
+                }
+
+                pvpCommandPending = true;
+                pvpCoordinator.RequestCommand(new PvpMatchCommand(
+                    PvpMatchCommandType.Continue,
+                    playerSide));
+                return;
+            }
+
+            ContinueAfterResult();
+        }
+
+        private void ContinueAfterResult()
+        {
             if (matchFinished)
             {
                 StartMatch();
-            }
-            else if (lastGameWasDraw)
-            {
-                StartGame();
             }
             else
             {
@@ -532,6 +815,11 @@ namespace NAN2026.Gomoku
 
         private void HandleCombatSpeedChanged(int speed)
         {
+            if (isPvp)
+            {
+                return;
+            }
+
             combatSpeed = Mathf.Clamp(speed, MinCombatSpeed, MaxCombatSpeed);
             if (game.Phase == GamePhase.Combat && !waitingForContinue)
             {

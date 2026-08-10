@@ -154,6 +154,16 @@ namespace NAN2026.Gomoku
             combat = resolver;
         }
 
+        public void SetCombatSpeedControlsVisible(bool visible)
+        {
+            combatSpeedPanel.SetActive(visible);
+        }
+
+        public void SetContinueButtonInteractable(bool interactable)
+        {
+            continueButton.interactable = interactable;
+        }
+
         public void SetTurnStatus(
             int turnNumber,
             TurnUiPhase phase,

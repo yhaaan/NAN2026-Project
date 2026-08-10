@@ -322,6 +322,11 @@ namespace NAN2026.Gomoku
         {
             if (NetworkManager.Singleton != null)
             {
+                if (NetworkManager.Singleton.GetComponent<PvpMatchCoordinator>() == null)
+                {
+                    NetworkManager.Singleton.gameObject.AddComponent<PvpMatchCoordinator>();
+                }
+
                 return;
             }
 
@@ -336,6 +341,7 @@ namespace NAN2026.Gomoku
                 EnableSceneManagement = false,
                 ConnectionApproval = false
             };
+            networkObject.AddComponent<PvpMatchCoordinator>();
         }
 
         private async void RefreshRooms()
@@ -689,6 +695,7 @@ namespace NAN2026.Gomoku
                 return;
             }
 
+            PvpMatchCoordinator.Instance?.PrepareForGame(currentSession != null && currentSession.IsHost);
             startingGame = true;
             SetBusy(true);
             SceneTransitionController.LoadMainGame();

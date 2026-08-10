@@ -211,7 +211,7 @@ MonoBehaviour:
   shakeOffsetFadeIn: {x: 0, y: 2.5}
   shakeFrequencyFadeIn: 4
   durationFadeOut: 0.1
-  enableOffsetFadeOut: 1
+  enableOffsetFadeOut: 0
   offsetFadeOut: {x: 0.5, y: 0}
   enableScaleFadeOut: 0
   scaleFadeOut: {x: 2, y: 2}
@@ -222,11 +222,11 @@ MonoBehaviour:
   shakeFrequencyFadeOut: 4
   enableLerp: 1
   lerpSettings:
-    speed: 5
-    minX: 0.57
-    maxX: 0.57
-    minY: 0.55
-    maxY: 0.55
+    speed: 3
+    minX: 0
+    maxX: 0
+    minY: 0.4
+    maxY: 0.4
     randomFlip: 0
   enableVelocity: 0
   velocitySettings:
@@ -563,7 +563,7 @@ MonoBehaviour:
   m_text: 1
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 0fb274ff7550c3c4c8c045258fdc7684, type: 2}
-  m_sharedMaterial: {fileID: -6371356376055958075, guid: 0fb274ff7550c3c4c8c045258fdc7684, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 4b01d791ae6e2da4c82fefd951e2638f, type: 2}
   m_fontSharedMaterials:
   - {fileID: 6351561881551016941, guid: d157804495fc75446b892bb8ddaf2a3d, type: 2}
   m_fontMaterial: {fileID: 0}
@@ -701,7 +701,7 @@ MonoBehaviour:
   m_text: 1
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 0fb274ff7550c3c4c8c045258fdc7684, type: 2}
-  m_sharedMaterial: {fileID: -6371356376055958075, guid: 0fb274ff7550c3c4c8c045258fdc7684, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 4b01d791ae6e2da4c82fefd951e2638f, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
